@@ -1,0 +1,3 @@
+[submodule "project_docs"]
+	path = project_docs
+	url = git@github.com:OsipShmel/Ochre-Wormwood.git
