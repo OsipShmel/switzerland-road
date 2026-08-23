@@ -7,6 +7,7 @@ members = [
     "data-enricher",
     "pentest-agent",
     "switzerland-road",
+    "vls",
 ]
 
 [[package]]
@@ -137,6 +138,12 @@ wheels = [
 name = "data-enricher"
 version = "0.1.0"
 source = { editable = "apps/data_enricher" }
+dependencies = [
+    { name = "vls" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "vls", editable = "packages/vls" }]
 
 [[package]]
 name = "distro"
@@ -620,6 +627,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/35/c8/e78c06db7e9ce317ce7b8759ff2058333eac75caa8c22b75f0059589c9be/uuid_utils-0.17.0-cp314-cp314t-win_amd64.whl", hash = "sha256:e288a06cbbbcd01b44386e767985c9e21d2ad9bf59829aa7058d9a2a494804ab", size = 176271, upload-time = "2026-07-09T13:49:44.105Z" },
     { url = "https://files.pythonhosted.org/packages/a7/11/bd1c70e1ad3301163cebe66c8d26de26e6814d52f642a849448bd2833626/uuid_utils-0.17.0-cp314-cp314t-win_arm64.whl", hash = "sha256:1776a80d16369999b21627028cc5dbce819be83e1e079fdd7a51b587d2916db9", size = 175004, upload-time = "2026-07-09T13:49:45.591Z" },
 ]
+
+[[package]]
+name = "vls"
+version = "0.1.0"
+source = { editable = "packages/vls" }
 
 [[package]]
 name = "websockets"
