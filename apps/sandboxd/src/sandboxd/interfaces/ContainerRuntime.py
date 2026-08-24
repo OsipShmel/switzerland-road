@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class ContainerRuntime(Protocol):
+    def up(self, manifest: TargetManifest) -> list[str]: ...
+    def down(self, container_ids: list[str]) -> None: ...
