@@ -8,7 +8,6 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
-    "apps/pentest_agent",
-    "apps/data_enricher",
-    "apps/orchestrator",
+    "apps/*",
+    "packages/*",
 ]
