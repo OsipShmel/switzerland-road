@@ -1,0 +1,56 @@
+{
+    "nodes": [
+        {
+            "id": "api_gw",
+            "type": "gateway",
+            "zone": "public"
+        },
+        {
+            "id": "auth_svc",
+            "type": "service",
+            "zone": "dmz"
+        },
+        {
+            "id": "billing_svc",
+            "type": "service",
+            "zone": "internal"
+        },
+        {
+            "id": "report_worker",
+            "type": "worker",
+            "zone": "isolated"
+        },
+        {
+            "id": "users_db",
+            "type": "database",
+            "criticality": "critical"
+        },
+        {
+            "id": "payments_vault",
+            "type": "vault",
+            "criticality": "critical"
+        }
+    ],
+    "edges": [
+        {
+            "source": "api_gw",
+            "target": "auth_svc"
+        },
+        {
+            "source": "api_gw",
+            "target": "billing_svc"
+        },
+        {
+            "source": "auth_svc",
+            "target": "users_db"
+        },
+        {
+            "source": "billing_svc",
+            "target": "payments_vault"
+        },
+        {
+            "source": "billing_svc",
+            "target": "users_db"
+        }
+    ]
+}
