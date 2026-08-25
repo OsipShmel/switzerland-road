@@ -7,6 +7,7 @@ container = runner.start(
     target_port=3000,
     health_path="/",
     health_timeout=60.0,
+    disposable=True
 )
 print("running, ports:", container.attrs["NetworkSettings"]["Ports"])
 
