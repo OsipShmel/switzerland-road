@@ -35,6 +35,8 @@ class SemgrepScanner:
             self.config,
             "--json",
             "--quiet",
+            "--project-root",
+            str(target),
             str(target),
         ]
         try:
