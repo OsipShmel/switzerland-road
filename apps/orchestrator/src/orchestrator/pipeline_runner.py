@@ -24,7 +24,7 @@ class SemgrepScanner:
         self.timeout_seconds = timeout_seconds
 
     def scan(self, target_dir: str | Path) -> dict[str, Any]:
-        target = Path(target_dir).expanduser()
+        target = Path(target_dir).expanduser().resolve()
         if not target.is_dir():
             raise PipelineError(f"Semgrep target directory does not exist: {target}")
 
@@ -36,8 +36,8 @@ class SemgrepScanner:
             "--json",
             "--quiet",
             "--project-root",
-            str(target),
-            str(target),
+            ".",
+            ".",
         ]
         try:
             process = subprocess.run(
@@ -45,6 +45,7 @@ class SemgrepScanner:
                 capture_output=True,
                 text=True,
                 timeout=self.timeout_seconds,
+                cwd=target,
             )
         except FileNotFoundError as exc:
             raise PipelineError("Semgrep executable was not found in PATH") from exc

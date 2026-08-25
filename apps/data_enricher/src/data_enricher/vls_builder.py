@@ -24,43 +24,39 @@ class VLSBuilder:
             records.append(self._build_record(sast))
         return records
 
-    def _build_sast_block(self, finding: Mapping[str, Any]) -> dict[str, Any]:
+    def _build_sast_block(self, finding: Mapping[str, Any]) -> SastBlock:
         extra = self._mapping(finding.get("extra"))
+        metadata = self._mapping(extra.get("metadata"))
         start = self._mapping(finding.get("start"))
+        end = self._mapping(finding.get("end"))
         rule_id = str(finding.get("check_id") or "unknown-semgrep-rule")
-        return {
-            "tool": "semgrep",
-            "rule_id": rule_id,
-            "file_path": str(finding.get("path") or ""),
-            "line": self._integer(start.get("line")),
-            "title": str(extra.get("message") or rule_id),
-        }
+        severity = extra.get("severity")
+        fingerprint = extra.get("fingerprint")
+        return SastBlock(
+            rule_id=rule_id,
+            file_path=str(finding.get("path") or ""),
+            line=self._integer(start.get("line")),
+            end_line=self._integer(end.get("line")),
+            column=self._integer(start.get("col")),
+            message=str(extra.get("message") or rule_id),
+            severity=str(severity) if severity is not None else None,
+            cwe=self._string_list(metadata.get("cwe")),
+            fingerprint=str(fingerprint) if fingerprint is not None else None,
+        )
 
-    def _build_record(self, sast: Mapping[str, Any]) -> dict[str, Any]:
+    def _build_record(self, sast: SastBlock) -> dict[str, Any]:
         vls = VLS(
             id=self._build_id(sast),
-            title=str(sast["title"]),
-            sast=SastBlock(),
-            verification_history={
-                "dast": {
-                    "run_executed": False,
-                    "verdict_output": "not_tested",
-                },
-                "pentest": {
-                    "run_executed": False,
-                    "verdict_output": "not_tested",
-                },
-            },
+            title=sast.message or sast.rule_id,
+            sast=sast,
         )
-        payload = vls.model_dump(mode="json")
-        payload["sast"] = dict(sast)
-        return payload
+        return vls.model_dump(mode="json")
 
-    def _build_id(self, sast: Mapping[str, Any]) -> str:
+    def _build_id(self, sast: SastBlock) -> str:
         identity = {
-            "rule_id": sast["rule_id"],
-            "file_path": sast["file_path"],
-            "line": sast["line"],
+            "rule_id": sast.rule_id,
+            "file_path": sast.file_path,
+            "line": sast.line,
         }
         canonical = json.dumps(identity, sort_keys=True, separators=(",", ":"))
         return str(uuid5(NAMESPACE_URL, canonical))
@@ -75,3 +71,11 @@ class VLSBuilder:
             return int(value) if value is not None else None
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _string_list(value: Any) -> list[str]:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value]
+        return []

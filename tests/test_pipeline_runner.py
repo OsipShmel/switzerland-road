@@ -11,6 +11,24 @@ from orchestrator.pipeline_runner import PipelineError, SecurityPipeline, Semgre
 
 
 class SemgrepScannerTests(unittest.TestCase):
+    def test_scan_runs_inside_target_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            process = subprocess.CompletedProcess(
+                args=["semgrep"],
+                returncode=0,
+                stdout='{"results": []}',
+                stderr="",
+            )
+            with patch(
+                "orchestrator.pipeline_runner.subprocess.run",
+                return_value=process,
+            ) as run:
+                SemgrepScanner().scan(directory)
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[-3:], ["--project-root", ".", "."])
+        self.assertEqual(run.call_args.kwargs["cwd"], Path(directory).resolve())
+
     def test_failure_is_not_reported_as_empty_results(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             process = subprocess.CompletedProcess(
