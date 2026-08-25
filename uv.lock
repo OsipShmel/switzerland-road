@@ -358,11 +358,11 @@ name = "orchestrator"
 version = "0.1.0"
 source = { editable = "apps/orchestrator" }
 dependencies = [
-    { name = "python-owasp-zap-v2-4" },
+    { name = "data-enricher" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "python-owasp-zap-v2-4", specifier = ">=0.1.0" }]
+requires-dist = [{ name = "data-enricher", editable = "apps/data_enricher" }]
 
 [[package]]
 name = "orjson"
@@ -492,18 +492,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-owasp-zap-v2-4"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "zaproxy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/54/fc/91192ca872399544c09c1cf3053c71d87d8fc21a4a0ddba1a890940a761a/python-owasp-zap-v2.4-0.1.0.tar.gz", hash = "sha256:2af4252320b3b77a38712081422688e676e038306cf1f2792feed811235afa8b", size = 5222, upload-time = "2023-08-09T12:33:16.127Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/aa/2d32daaa560bd2ed4f338bc97e3ff845906c6190bf7aa778b7c7911c1844/python_owasp_zap_v2.4-0.1.0-py2.py3-none-any.whl", hash = "sha256:d4dc00387b0089d81683be01b8272577ad39fb47674377f65c7da0fd30b8abe9", size = 5418, upload-time = "2023-08-09T12:33:14.61Z" },
-]
-
-[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -554,15 +542,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f3/61/d7545dafb7ac2230c70d38d31cbfe4cc64f7144dc41f6e4e4b78ecd9f5bb/requests-toolbelt-1.0.0.tar.gz", hash = "sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6", size = 206888, upload-time = "2023-05-01T04:11:33.229Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl", hash = "sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06", size = 54481, upload-time = "2023-05-01T04:11:28.427Z" },
-]
-
-[[package]]
-name = "six"
-version = "1.17.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
 
 [[package]]
@@ -769,19 +748,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/49/7d/6c6e9d182b23d6301d1543b897eca975e796cb23536bf1d70bcc82656871/xxhash-4.0.0-cp315-cp315t-win32.whl", hash = "sha256:c16d66337724cf23e753e72d967646a1236127701cf6ec5b5ccf82af3d2932c9", size = 35115, upload-time = "2026-08-12T16:56:36.293Z" },
     { url = "https://files.pythonhosted.org/packages/d4/62/b4383d7481380a8428abeb969b91324cc2b6fa8c48f747c2d4d1f8cf5cf7/xxhash-4.0.0-cp315-cp315t-win_amd64.whl", hash = "sha256:5fe3e37e5c00a265deb33e233b94e468f38d9325f1c62e05de3ff768c4237702", size = 37094, upload-time = "2026-08-12T16:59:39.284Z" },
     { url = "https://files.pythonhosted.org/packages/52/3b/76ff969e59ce6491a9aba99b5b06a52b82684de637d0c22cdda9aba36292/xxhash-4.0.0-cp315-cp315t-win_arm64.whl", hash = "sha256:2cabef18c8353c1e28d4c3f8ba030e1892799d53bd83fa31f0ddb3e590e6aa7f", size = 34246, upload-time = "2026-08-12T16:56:35.428Z" },
-]
-
-[[package]]
-name = "zaproxy"
-version = "0.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/c6/5f292fe289c7dff5111b9802d8f7aa3af1edfd23cf40f98d5ae50f1846cd/zaproxy-0.6.0.tar.gz", hash = "sha256:3de13bbdcd8319c9d6395dd545ce7294d8bbaefb10d7199a57bcd22ec3587a81", size = 39356, upload-time = "2026-06-12T13:54:09.67Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/20/17fa3a9e0053e39a4cf6d0f902f1d39eca93bbc71e36a329b1620c265802/zaproxy-0.6.0-py3-none-any.whl", hash = "sha256:1a9123f4fe31605143e6cefe5adbc31af0d62bd6f86e10bdce7ec99573b74310", size = 74129, upload-time = "2026-06-12T13:54:08.295Z" },
 ]
 
 [[package]]

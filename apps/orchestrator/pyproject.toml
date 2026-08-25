@@ -5,8 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "python-owasp-zap-v2-4>=0.1.0",
+    "data-enricher",
 ]
+
+[tool.uv.sources]
+data-enricher = { workspace = true }
 
 [project.scripts]
 orchestrator = "orchestrator:main"

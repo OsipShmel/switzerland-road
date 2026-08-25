@@ -1,3 +1,3 @@
-from .main import main
+from .vls_builder import VLSBuilder
 
-__all__ = ["main"]
+__all__ = ["VLSBuilder"]
