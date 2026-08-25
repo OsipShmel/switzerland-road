@@ -1,12 +1,7 @@
-пока что запускает только саст, делает vls (human report'а нет)
-# меня трясет от питона
+пока что запускает только саст, делает vls
 
-# TODO
-- sast block issue
-- dast integration ( ny i sootvetstvenno parser)
-- hz
-
-
+## по дефолту ищет sqli 
 uv run --package orchestrator orchestrator \
   --target-dir target \
+  --semgrep-config p/default \
   --output output/pipeline-result.json

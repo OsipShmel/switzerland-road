@@ -13,8 +13,14 @@ class VLSBuilderTests(unittest.TestCase):
                 {
                     "check_id": "python.lang.security.audit.sql-injection",
                     "path": "src/auth.py",
-                    "start": {"line": 42},
-                    "extra": {"message": "SQL Injection in auth query"},
+                    "start": {"line": 42, "col": 5},
+                    "end": {"line": 44, "col": 12},
+                    "extra": {
+                        "message": "SQL Injection in auth query",
+                        "severity": "ERROR",
+                        "fingerprint": "finding-fingerprint",
+                        "metadata": {"cwe": ["CWE-89"]},
+                    },
                 }
             ]
         }
@@ -26,9 +32,15 @@ class VLSBuilderTests(unittest.TestCase):
         self.assertIsNone(record["verdict"])
         self.assertIsNone(record["confirmed_by"])
         self.assertEqual(record["sast"]["file_path"], "src/auth.py")
+        self.assertEqual(record["sast"]["end_line"], 44)
+        self.assertEqual(record["sast"]["column"], 5)
+        self.assertEqual(record["sast"]["cwe"], ["CWE-89"])
         self.assertEqual(
             record["verification_history"]["dast"]["verdict_output"],
             "not_tested",
+        )
+        self.assertIsNone(
+            record["verification_history"]["dast"]["human_report"]
         )
 
     def test_ids_are_stable(self) -> None:
