@@ -1,0 +1,15 @@
+services:
+  sandboxd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    init: true
+    privileged: true
+    cgroup: host
+
+    ports:
+      - "18000-18100:18000-18100"
+
+    stdin_open: true
+    tty: true

@@ -6,48 +6,47 @@ import shutil
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 import docker
 import httpx
 from docker.errors import ImageNotFound
 from docker.models.containers import Container
 
+from sandboxd.dataclasses.runtime_manifest import RuntimeManifest
+
 
 class SandboxRunner:
     def __init__(self, docker_client: docker.DockerClient | None = None) -> None:
         self._client = docker_client or docker.from_env()
 
-    def start(
-        self,
-        source_path: Path,
-        target_port: int,
-        env: dict[str, str] | None = None,
-        health_path: str = "/",
-        health_timeout: float = 60.0,
-        disposable: bool = False,  # TRUE - for targets, FALSE - for stable services
-    ) -> Container:
+    def up(self, manifest: RuntimeManifest) -> Container:
 
-        image_tag = f"sandbox-target:{self._calculate_dir_hash(source_path)}"
+        image_tag = manifest.image_tag
 
         # Build only if code with that hash has not yet appeared in the system.
         if not self._image_exists(image_tag):
-            build_ctx = self._prepare_build_context(source_path)
+            build_ctx = self._prepare_build_context(manifest.source_path)
             try:
                 self._build_image(build_ctx, image_tag)
             finally:
                 self._cleanup_build_context(build_ctx)
 
-        container = self._run_target(image_tag, target_port, env or {}, disposable)
+        container = self._run_container(manifest)
 
         try:
-            self._wait_until_healthy(container, target_port, health_path, health_timeout)
+            self._wait_until_healthy(
+                container=container,
+                target_port=manifest.target_port,
+                health_path=manifest.health_path,
+                timeout=manifest.health_timeout,)
             return container
         except Exception:
-            self.stop(container)
+            self.down(container)
             raise
 
     @staticmethod
-    def stop(container: Container) -> None:
+    def down(container: Container) -> None:
         container.stop()
         container.remove()
 
@@ -90,29 +89,34 @@ class SandboxRunner:
         print(f"\n Образ {tag} успешно собран!")
         return tag
 
-    def _run_target(self, tag: str, target_port: int, env: dict[str, str], disposable: bool) -> Container:
-        if disposable:
-            # Стратегия для тестируемого таргета: жесткие лимиты, изоляция, без авто-перезапуска
-            return self._client.containers.run(
-                tag,
-                detach=True,
-                environment=env,
-                ports={f"{target_port}/tcp": None},
-                restart_policy={"Name": "no"},
-                # read_only=True,  # TODO!
-                # tmpfs={"/tmp": "rw,size=128m", "/run": "rw,size=16m"},  # TODO!
-                mem_limit="512m",  # TODO!
-                nano_cpus=1000000000, # TODO! – вот ну с этим блять как быть? вот как можно автоматически деплоить без адекватного понимания таргета?
-            )
+    def _run_container(self, manifest: RuntimeManifest) -> Container:
+        run_kwargs: dict[str, Any] = {
+            "image": manifest.image_tag,
+            "detach": True,
+            "environment": manifest.env,
+            "ports": {f"{manifest.target_port}/tcp": None},
+            "restart_policy": manifest.restart_policy,
+            "mem_limit": manifest.mem_limit,
+        }
+
+        if manifest.published_port is not None:
+            run_kwargs["ports"] = {
+                f"{manifest.target_port}/tcp": (
+                    "0.0.0.0",
+                    str(manifest.published_port),
+                )
+            }
         else:
-            return self._client.containers.run(
-                tag,
-                detach=True,
-                environment=env,
-                ports={f"{target_port}/tcp": None},
-                restart_policy={"Name": "unless-stopped"},
-                mem_limit="1g",  # TODO!
-            )
+            run_kwargs["ports"] = {
+                f"{manifest.target_port}/tcp": None
+            }
+
+        if manifest.nano_cpus is not None:
+            run_kwargs["nano_cpus"] = manifest.nano_cpus
+
+        run_kwargs.update(manifest.extra_options)
+
+        return self._client.containers.run(**run_kwargs)
 
 
     @staticmethod
@@ -127,7 +131,7 @@ class SandboxRunner:
                 if httpx.get(url, timeout=2.0).status_code == 200:
                     return
 
-            except (httpx.ConnectError, httpx.ReadError, httpx.HTTPError):
+            except httpx.HTTPError:
                 pass
             time.sleep(1.0)
         raise TimeoutError(f"service did not become healthy in time: {url}")
