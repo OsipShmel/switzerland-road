@@ -6,7 +6,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class RuntimeManifest:
+class NodeManifest:
     source_path: Path
     target_port: int
     published_port: int | None = None
@@ -27,6 +27,9 @@ class RuntimeManifest:
     def image_tag(self) -> str:
         return f"{self.image_prefix}:{self._calculate_dir_hash(self.source_path)}"
 
+    # WARN!
+    # Данный подход конфликтует с параллельным запуском нескольких таргетов от одного sandboxd.
+    # Сейчас не проблема, стоит помнить
     @staticmethod
     def _calculate_dir_hash(path: Path) -> str:
         hasher = hashlib.md5()
@@ -41,7 +44,7 @@ class RuntimeManifest:
         return hasher.hexdigest()[:12]
 
     @classmethod
-    def create_disposable(cls, source_path: Path, target_port: int, **kwargs) -> RuntimeManifest:
+    def create_disposable(cls, source_path: Path, target_port: int, **kwargs) -> NodeManifest:
         defaults = {
             "mem_limit": "512m",
             "nano_cpus": 1000000000,
@@ -54,7 +57,7 @@ class RuntimeManifest:
         )
 
     @classmethod
-    def create_stable(cls, source_path: Path, target_port: int, **kwargs) -> RuntimeManifest:
+    def create_stable(cls, source_path: Path, target_port: int, **kwargs) -> NodeManifest:
         defaults = {
             "mem_limit": "1g",
             "nano_cpus": None,

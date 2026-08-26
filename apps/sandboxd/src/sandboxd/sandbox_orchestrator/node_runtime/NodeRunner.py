@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import os
 import shutil
 import time
 import uuid
@@ -13,14 +11,14 @@ import httpx
 from docker.errors import ImageNotFound
 from docker.models.containers import Container
 
-from sandboxd.dataclasses.runtime_manifest import RuntimeManifest
+from sandboxd.dataclasses.NodeManifest import NodeManifest
 
 
-class SandboxRunner:
+class NodeRunner:
     def __init__(self, docker_client: docker.DockerClient | None = None) -> None:
-        self._client = docker_client or docker.from_env()
+        self._client = docker_client
 
-    def up(self, manifest: RuntimeManifest) -> Container:
+    def up(self, manifest: NodeManifest) -> Container:
 
         image_tag = manifest.image_tag
 
@@ -51,19 +49,6 @@ class SandboxRunner:
         container.remove()
 
     @staticmethod
-    def _calculate_dir_hash(path: Path) -> str:
-        hasher = hashlib.md5()
-        for root, _, files in sorted(os.walk(path)):
-            for file in sorted(files):
-                file_path = Path(root) / file
-                hasher.update(str(file_path.relative_to(path)).encode())
-                try:
-                    hasher.update(file_path.read_bytes())
-                except IOError:
-                    pass
-        return hasher.hexdigest()[:12]
-
-    @staticmethod
     def _prepare_build_context(source_path: Path) -> Path:
         build_ctx = Path(f"/tmp/sandbox-build-{uuid.uuid4()}")
         shutil.copytree(source_path, build_ctx)
@@ -89,7 +74,7 @@ class SandboxRunner:
         print(f"\n Образ {tag} успешно собран!")
         return tag
 
-    def _run_container(self, manifest: RuntimeManifest) -> Container:
+    def _run_container(self, manifest: NodeManifest) -> Container:
         run_kwargs: dict[str, Any] = {
             "image": manifest.image_tag,
             "detach": True,

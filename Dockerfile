@@ -21,4 +21,4 @@ RUN chmod +x /usr/local/bin/sandboxd-entrypoint
 
 ENTRYPOINT ["sandboxd-entrypoint"]
 
-CMD ["uv", "run", "python", "apps/sandboxd/tests/smoke_test.py"]
+CMD ["uv", "run", "--package", "sandboxd", "python", "-m", "sandboxd.main"]

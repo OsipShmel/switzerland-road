@@ -10,6 +10,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.13",
     "setuptools>=84.0.0",
+    "pytest>=9.1.1",
 ]
 
 [project.scripts]
@@ -18,3 +19,8 @@ sandboxd = "sandboxd:main"
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
