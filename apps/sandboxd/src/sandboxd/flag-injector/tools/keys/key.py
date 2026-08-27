@@ -36,7 +36,7 @@ fs_file = base_dir / 'mounts' / 'root' / 'flag.txt'
 fs_file.parent.mkdir(parents=True, exist_ok=True)
 fs_file.write_text(flag_fs)
 
-compose_file = base_dir / 'docker-compose.sandboxd.yml'
+compose_file = base_dir / 'docker-compose.yml'
 if compose_file.exists():
     content = compose_file.read_text()
     if 'flag.txt' not in content:

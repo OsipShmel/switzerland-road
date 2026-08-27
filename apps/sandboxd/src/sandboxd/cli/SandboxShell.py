@@ -23,6 +23,7 @@ def _target_manifest() -> NodeManifest:
         source_path=TARGET_DIR,
         target_port=3000,
         health_path="/rest/admin/application-version",
+        published_port=18001
     )
 
 
