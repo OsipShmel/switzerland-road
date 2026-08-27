@@ -1,0 +1,7 @@
+.git
+.idea
+.venv
+**/__pycache__
+**/.pytest_cache
+target
+project_docs
