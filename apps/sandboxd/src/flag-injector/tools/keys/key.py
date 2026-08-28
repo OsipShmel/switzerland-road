@@ -105,7 +105,7 @@ class App:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Использование: python key.py <путь>")
+        print("Использование: python key.py")
         sys.exit(1)
     
     app = App(sys.argv[1])
