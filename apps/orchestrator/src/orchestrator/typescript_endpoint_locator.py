@@ -70,7 +70,16 @@ class TypeScriptEndpointIndex:
         inline_routes = [route for route in parsed.routes if route.start <= offset <= route.end]
         if inline_routes:
             route = min(inline_routes, key=lambda item: item.end - item.start)
-            return self._endpoint(parsed.path, route, "inline")
+            endpoint = self._endpoint(parsed.path, route, "inline")
+            endpoint["query_parameters"] = self._query_parameters(
+                parsed.text[route.start:route.end]
+            )
+            endpoint["locator_confidence"] = 1.0
+            endpoint["locator_evidence"] = [
+                "строка sast находится внутри callback маршрута",
+                f"маршрут объявлен в {endpoint['declaration_file']}:{route.line}",
+            ]
+            return endpoint
 
         handlers = [
             function
@@ -81,7 +90,19 @@ class TypeScriptEndpointIndex:
             return None
         handler = min(handlers, key=lambda item: item.end - item.start)
         endpoints = self.routes_by_handler.get((source, handler.name), [])
-        return endpoints[0] if endpoints else None
+        if not endpoints:
+            return None
+        endpoint = dict(endpoints[0])
+        endpoint["query_parameters"] = self._query_parameters(
+            parsed.text[handler.start:handler.end]
+        )
+        endpoint["locator_confidence"] = 0.95
+        endpoint["locator_evidence"] = [
+            f"строка sast находится внутри обработчика {handler.name}",
+            f"импорт обработчика разрешен до {source.relative_to(self.target).as_posix()}",
+            f"маршрут объявлен в {endpoint['declaration_file']}:{endpoint['declaration_line']}",
+        ]
+        return endpoint
 
     def _read_sources(self) -> dict[Path, _SourceFile]:
         files: dict[Path, _SourceFile] = {}
@@ -173,7 +194,18 @@ class TypeScriptEndpointIndex:
             "handler": handler,
             "declaration_file": declaration_file.relative_to(self.target).as_posix(),
             "declaration_line": route.line,
+            "query_parameters": [],
+            "locator_confidence": 0.0,
+            "locator_evidence": [],
         }
+
+    @staticmethod
+    def _query_parameters(source: str) -> list[str]:
+        parameters = re.findall(
+            r"\breq\s*(?:\?\.)?\.\s*query\s*(?:\?\.)?\.\s*([A-Za-z_]\w*)",
+            source,
+        )
+        return list(dict.fromkeys(parameters))
 
     @classmethod
     def _routes(cls, text: str, masked: str) -> list[_RouteCall]:

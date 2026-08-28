@@ -1,6 +1,936 @@
 {
   "target_dir": "/Users/dogma/cft/switzerland-road/target/juice-shop-master",
+  "locator": {
+    "total_findings": 68,
+    "matched_findings": 10,
+    "coverage": 0.14705882352941177,
+    "average_confidence": 0.95,
+    "matches": [
+      {
+        "vulnerability_id": "ae035016-e53f-5f7d-a6cf-43da279c5692",
+        "path": "/rest/captcha",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика captchas",
+          "импорт обработчика разрешен до routes/captcha.ts",
+          "маршрут объявлен в server.ts:634"
+        ]
+      },
+      {
+        "vulnerability_id": "213bc9db-ba8c-50af-8c7b-20c49a215e1f",
+        "path": "/rest/user/whoami",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика retrieveLoggedInUser",
+          "импорт обработчика разрешен до routes/currentUser.ts",
+          "маршрут объявлен в server.ts:619"
+        ]
+      },
+      {
+        "vulnerability_id": "ea53b73f-63fd-573a-ada4-3608de668f27",
+        "path": "/encryptionkeys/:file",
+        "http_methods": [],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика serveKeyFiles",
+          "импорт обработчика разрешен до routes/keyServer.ts",
+          "маршрут объявлен в server.ts:297"
+        ]
+      },
+      {
+        "vulnerability_id": "c9a8095f-20a9-5741-810f-3d12f2b36ab8",
+        "path": "/support/logs/:file",
+        "http_methods": [],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика serveLogFiles",
+          "импорт обработчика разрешен до routes/logfileServer.ts",
+          "маршрут объявлен в server.ts:302"
+        ]
+      },
+      {
+        "vulnerability_id": "5a74adf1-5afc-5ffa-b4fd-4293713af65b",
+        "path": "/rest/user/login",
+        "http_methods": [
+          "POST"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика login",
+          "импорт обработчика разрешен до routes/login.ts",
+          "маршрут объявлен в server.ts:615"
+        ]
+      },
+      {
+        "vulnerability_id": "901d21e0-7f5b-5942-a7fb-b21af900aec9",
+        "path": "/ftp/quarantine/:file",
+        "http_methods": [],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика serveQuarantineFiles",
+          "импорт обработчика разрешен до routes/quarantineServer.ts",
+          "маршрут объявлен в server.ts:290"
+        ]
+      },
+      {
+        "vulnerability_id": "f36abd39-4ef5-5ccc-b12d-9f4766026a4c",
+        "path": "/redirect",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика performRedirect",
+          "импорт обработчика разрешен до routes/redirect.ts",
+          "маршрут объявлен в server.ts:678"
+        ]
+      },
+      {
+        "vulnerability_id": "3ab6a40a-2fee-5009-86f0-afb48231f79e",
+        "path": "/rest/products/search",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика searchProducts",
+          "импорт обработчика разрешен до routes/search.ts",
+          "маршрут объявлен в server.ts:621"
+        ]
+      },
+      {
+        "vulnerability_id": "54a8e6ce-1c73-5941-afac-610a57125e21",
+        "path": "/profile",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика getUserProfile",
+          "импорт обработчика разрешен до routes/userProfile.ts",
+          "маршрут объявлен в server.ts:685"
+        ]
+      },
+      {
+        "vulnerability_id": "23b6d93c-fc92-5b92-8610-94fb40a52bba",
+        "path": "/profile",
+        "http_methods": [
+          "GET"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          "строка sast находится внутри обработчика getUserProfile",
+          "импорт обработчика разрешен до routes/userProfile.ts",
+          "маршрут объявлен в server.ts:685"
+        ]
+      }
+    ]
+  },
+  "dast": {
+    "requested": true,
+    "executed": 9,
+    "skipped": [
+      {
+        "vulnerability_id": "109da25e-e01a-523c-8a52-a42793023706",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "6926fc8f-5e17-53fc-8e74-1579eeb7c586",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "1e117d8e-4b53-55f5-a7cd-f24a45d8d034",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "e560b1db-8b8c-5628-a3c7-a445dcbb7e62",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "f28e1edb-4e83-59c8-9894-b8b1ea13d443",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "04d842df-1655-58c7-b398-248ee4449d69",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "9c8e858b-2ac3-5ace-8519-e40760c38094",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "a3c189ed-7f46-5e5e-9964-e692af0228cf",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "eb508ef8-4a59-5f2d-83d9-4b5fd8771294",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "53422051-65b7-5cec-8612-56781710e864",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "e35abf60-7a2d-532b-84e4-04a8081529e6",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "03558141-96dc-5ec5-be7b-c3741c63a9ff",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "61f5de50-4602-5626-8ed3-479e39dbb003",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "7932c53b-b7f3-54cd-81e9-82a45ea0deda",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "8a5b7b78-eb51-5105-a737-bb247246876c",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "021b8fdd-e766-526e-8d1d-3e6ff3e8a5e6",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "86416cd2-2bf8-5b5c-b1b5-f1efb56e9879",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "f39977a5-e061-5207-9485-663b62684c3a",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "72e4f58e-2ba1-5eac-b618-e5e6d6caa942",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "e6563041-13a1-5436-84e5-a3d39d5f1ae7",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "71b72447-c8fd-5908-b367-11c38782d841",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "dbae883e-9dc2-5500-919c-6666e2b2ef53",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "2b80d2ba-a68c-519d-b325-da5035b710d4",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "26c539d4-1e99-581d-92e7-7a6bab171a9f",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "90eecf71-ae40-5062-a14f-53e8e1cdaea0",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "47efcde5-d60a-51b2-ae61-91a98484b45b",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "47efcde5-d60a-51b2-ae61-91a98484b45b",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "872a2bd8-df11-5c8e-9cdb-43f4e10f1424",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "7040cd03-bc37-5ad7-a1fd-9e70a5d40068",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "2117bb10-041e-595d-a4ef-0fefee84d87d",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "9fe61664-f712-5fe8-868e-bd4548700fe1",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "3061bfdf-bdc9-5500-a938-e62cb21aac44",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "5d3749c9-ce6f-57ee-b331-15d2a3207344",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "497b9f97-8537-5bff-aa89-0238834b5cb8",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "90a1c897-1bb1-58c5-9a47-218428db4a14",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "836a6e9f-60ad-5d5b-82a3-62d4661fe8a9",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "b2affa76-b92f-5c3f-ba8a-9811a5b47ddf",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "d3dc5ca6-cb5b-5f38-8912-ff2de7aa9cf0",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "bea94ce7-fada-53b7-a0d2-4941036bc2c3",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "ff0e56db-fe0b-5cb0-beb4-3e664e263721",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "e6a29de3-77d1-5ea1-916b-15b2875b8b84",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "86385017-972c-5d4c-ae84-97d6120c40fa",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "822251f1-c0a0-551d-831a-d15423595858",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "4ce340a0-7721-56e3-882b-2342d79f6fa4",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "741634fc-0bf5-566c-b9d0-43a03350807f",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "994ec54a-61ca-53b7-8c81-a5f3c3bc4aaa",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "5a74adf1-5afc-5ffa-b4fd-4293713af65b",
+        "target_url": "http://target:3000/rest/user/login",
+        "reason": "метод POST пока не поддержан точечным zap-сканером"
+      },
+      {
+        "vulnerability_id": "d746b4f8-70e4-5452-ac0c-c7f77680165e",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "f89b3cd0-8f66-5417-a0cd-ab8b98fe81ab",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "12c0bd6c-b9ec-5ec6-840f-2349569c4ac6",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "6e9f355a-ef7b-5d96-94da-94d1268a8d4d",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "746b8809-33c4-5ddd-bbc9-fe9f0ea60f74",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "333909ef-e055-54e7-978b-4059dea85860",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "43c15d61-51fe-5ad9-87e1-10d59c52bbf3",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "43a3af99-b482-5143-8b19-7c51e0f217a1",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "af0d71cb-5872-5dc4-a9ce-153bbf1dd1b7",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "29bbda10-7cf2-53d1-a246-aa97896427ae",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "808f18a5-f1f3-5bf2-b96c-d55664c160dd",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      },
+      {
+        "vulnerability_id": "8ad2445f-281c-5763-b1e8-322780f7a0b9",
+        "target_url": null,
+        "reason": "локатор не нашел абсолютный путь endpoint"
+      }
+    ]
+  },
   "vulnerabilities": [
+    {
+      "id": "109da25e-e01a-523c-8a52-a42793023706",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/ci.yml",
+        "line": 188,
+        "end_line": 188,
+        "column": 9,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "6926fc8f-5e17-53fc-8e74-1579eeb7c586",
+      "title": "A `run:` step pipes the output of `curl` or `wget` directly into a shell interpreter. This is the \"curl | bash\" install pattern — if the remote server is compromised or the URL is hijacked, an attacker can execute arbitrary code in your CI runner. Consider downloading the file first, verifying its checksum or signature, and then executing it.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.gha-curl-pipe-shell.gha-curl-pipe-shell",
+        "file_path": ".github/workflows/ci.yml",
+        "line": 359,
+        "end_line": 359,
+        "column": 9,
+        "message": "A `run:` step pipes the output of `curl` or `wget` directly into a shell interpreter. This is the \"curl | bash\" install pattern — if the remote server is compromised or the URL is hijacked, an attacker can execute arbitrary code in your CI runner. Consider downloading the file first, verifying its checksum or signature, and then executing it.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "1e117d8e-4b53-55f5-a7cd-f24a45d8d034",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/codeql-analysis.yml",
+        "line": 23,
+        "end_line": 23,
+        "column": 7,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "e560b1db-8b8c-5628-a3c7-a445dcbb7e62",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/codeql-analysis.yml",
+        "line": 34,
+        "end_line": 34,
+        "column": 7,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "f28e1edb-4e83-59c8-9894-b8b1ea13d443",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/codeql-analysis.yml",
+        "line": 36,
+        "end_line": 36,
+        "column": 7,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "04d842df-1655-58c7-b398-248ee4449d69",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/image_actions.yml",
+        "line": 30,
+        "end_line": 30,
+        "column": 9,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "9c8e858b-2ac3-5ace-8519-e40760c38094",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/image_actions.yml",
+        "line": 33,
+        "end_line": 33,
+        "column": 9,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "a3c189ed-7f46-5e5e-9964-e692af0228cf",
+      "title": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "file_path": ".github/workflows/image_actions.yml",
+        "line": 42,
+        "end_line": 42,
+        "column": 9,
+        "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+          "CWE-353: Missing Support for Integrity Check"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "eb508ef8-4a59-5f2d-83d9-4b5fd8771294",
+      "title": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "file_path": ".github/workflows/update-challenges-ebook.yml",
+        "line": 22,
+        "end_line": 25,
+        "column": 7,
+        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "53422051-65b7-5cec-8612-56781710e864",
+      "title": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "file_path": ".github/workflows/update-challenges-www-legacy.yml",
+        "line": 27,
+        "end_line": 34,
+        "column": 7,
+        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "e35abf60-7a2d-532b-84e4-04a8081529e6",
+      "title": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "file_path": ".github/workflows/update-challenges-www-legacy.yml",
+        "line": 36,
+        "end_line": 44,
+        "column": 7,
+        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "03558141-96dc-5ec5-be7b-c3741c63a9ff",
+      "title": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "file_path": ".github/workflows/update-challenges-www.yml",
+        "line": 27,
+        "end_line": 34,
+        "column": 7,
+        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "61f5de50-4602-5626-8ed3-479e39dbb003",
+      "title": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "file_path": ".github/workflows/update-challenges-www.yml",
+        "line": 36,
+        "end_line": 44,
+        "column": 7,
+        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "7932c53b-b7f3-54cd-81e9-82a45ea0deda",
+      "title": "This .npmrc does not set a minimum release age or sets it too low. Newly published packages can be malicious or unstable. Add `min-release-age = 7` to wait 7 days before resolving newly published package versions. Added in: v11.10 Reference: https://github.blog/changelog/2026-02-18-npm-bulk-trusted-publishing-config-and-script-security-now-generally-available/",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+        "file_path": ".npmrc",
+        "line": 1,
+        "end_line": 1,
+        "column": 1,
+        "message": "This .npmrc does not set a minimum release age or sets it too low. Newly published packages can be malicious or unstable. Add `min-release-age = 7` to wait 7 days before resolving newly published package versions. Added in: v11.10 Reference: https://github.blog/changelog/2026-02-18-npm-bulk-trusted-publishing-config-and-script-security-now-generally-available/",
+        "severity": "MEDIUM",
+        "cwe": [
+          "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
     {
       "id": "8a5b7b78-eb51-5105-a737-bb247246876c",
       "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
@@ -53,6 +983,391 @@
         "severity": "ERROR",
         "cwe": [
           "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "86416cd2-2bf8-5b5c-b1b5-f1efb56e9879",
+      "title": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_1.tf",
+        "line": 17,
+        "end_line": 29,
+        "column": 1,
+        "message": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1220: Insufficient Granularity of Access Control"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "f39977a5-e061-5207-9485-663b62684c3a",
+      "title": "ELB has no logging. Missing logs can cause missing important event information.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-elb-access-logs-not-enabled.aws-elb-access-logs-not-enabled",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_1.tf",
+        "line": 121,
+        "end_line": 132,
+        "column": 1,
+        "message": "ELB has no logging. Missing logs can cause missing important event information.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "72e4f58e-2ba1-5eac-b618-e5e6d6caa942",
+      "title": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.insecure-load-balancer-tls-version.insecure-load-balancer-tls-version",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_1.tf",
+        "line": 159,
+        "end_line": 159,
+        "column": 3,
+        "message": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "e6563041-13a1-5436-84e5-a3d39d5f1ae7",
+      "title": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_2.tf",
+        "line": 17,
+        "end_line": 29,
+        "column": 1,
+        "message": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1220: Insufficient Granularity of Access Control"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "71b72447-c8fd-5908-b367-11c38782d841",
+      "title": "ELB has no logging. Missing logs can cause missing important event information.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-elb-access-logs-not-enabled.aws-elb-access-logs-not-enabled",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_2.tf",
+        "line": 121,
+        "end_line": 132,
+        "column": 1,
+        "message": "ELB has no logging. Missing logs can cause missing important event information.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "dbae883e-9dc2-5500-919c-6666e2b2ef53",
+      "title": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.insecure-load-balancer-tls-version.insecure-load-balancer-tls-version",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_2.tf",
+        "line": 159,
+        "end_line": 159,
+        "column": 3,
+        "message": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "2b80d2ba-a68c-519d-b325-da5035b710d4",
+      "title": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf",
+        "line": 17,
+        "end_line": 29,
+        "column": 1,
+        "message": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1220: Insufficient Granularity of Access Control"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "26c539d4-1e99-581d-92e7-7a6bab171a9f",
+      "title": "ELB has no logging. Missing logs can cause missing important event information.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-elb-access-logs-not-enabled.aws-elb-access-logs-not-enabled",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf",
+        "line": 121,
+        "end_line": 132,
+        "column": 1,
+        "message": "ELB has no logging. Missing logs can cause missing important event information.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "90eecf71-ae40-5062-a14f-53e8e1cdaea0",
+      "title": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.insecure-load-balancer-tls-version.insecure-load-balancer-tls-version",
+        "file_path": "data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf",
+        "line": 159,
+        "end_line": 159,
+        "column": 3,
+        "message": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "47efcde5-d60a-51b2-ae61-91a98484b45b",
+      "title": "Detected a call to `replaceAll()` in an attempt to HTML escape the string `tableData[i].description`. Manually sanitizing input through a manually built list can be circumvented in many situations, and it's better to use a well known sanitization library such as `sanitize-html` or `DOMPurify`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+        "file_path": "data/static/codefixes/restfulXssChallenge_2.ts",
+        "line": 46,
+        "end_line": 46,
+        "column": 34,
+        "message": "Detected a call to `replaceAll()` in an attempt to HTML escape the string `tableData[i].description`. Manually sanitizing input through a manually built list can be circumvented in many situations, and it's better to use a well known sanitization library such as `sanitize-html` or `DOMPurify`.",
+        "severity": "INFO",
+        "cwe": [
+          "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "47efcde5-d60a-51b2-ae61-91a98484b45b",
+      "title": "Detected a call to `replaceAll()` in an attempt to HTML escape the string `tableData[i].description.replaceAll('<', '&lt;')`. Manually sanitizing input through a manually built list can be circumvented in many situations, and it's better to use a well known sanitization library such as `sanitize-html` or `DOMPurify`.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+        "file_path": "data/static/codefixes/restfulXssChallenge_2.ts",
+        "line": 46,
+        "end_line": 46,
+        "column": 34,
+        "message": "Detected a call to `replaceAll()` in an attempt to HTML escape the string `tableData[i].description.replaceAll('<', '&lt;')`. Manually sanitizing input through a manually built list can be circumvented in many situations, and it's better to use a well known sanitization library such as `sanitize-html` or `DOMPurify`.",
+        "severity": "INFO",
+        "cwe": [
+          "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
         ],
         "fingerprint": "requires login",
         "score": null,
@@ -142,6 +1457,839 @@
       }
     },
     {
+      "id": "2117bb10-041e-595d-a4ef-0fefee84d87d",
+      "title": "Generic Secret detected",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "generic.secrets.security.detected-generic-secret.detected-generic-secret",
+        "file_path": "data/static/users.yml",
+        "line": 151,
+        "end_line": 151,
+        "column": 7,
+        "message": "Generic Secret detected",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-798: Use of Hard-coded Credentials"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "9fe61664-f712-5fe8-868e-bd4548700fe1",
+      "title": "This .npmrc does not set a minimum release age or sets it too low. Newly published packages can be malicious or unstable. Add `min-release-age = 7` to wait 7 days before resolving newly published package versions. Added in: v11.10 Reference: https://github.blog/changelog/2026-02-18-npm-bulk-trusted-publishing-config-and-script-security-now-generally-available/",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+        "file_path": "frontend/.npmrc",
+        "line": 1,
+        "end_line": 1,
+        "column": 1,
+        "message": "This .npmrc does not set a minimum release age or sets it too low. Newly published packages can be malicious or unstable. Add `min-release-age = 7` to wait 7 days before resolving newly published package versions. Added in: v11.10 Reference: https://github.blog/changelog/2026-02-18-npm-bulk-trusted-publishing-config-and-script-security-now-generally-available/",
+        "severity": "MEDIUM",
+        "cwe": [
+          "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "3061bfdf-bdc9-5500-a938-e62cb21aac44",
+      "title": "JWT token detected",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "generic.secrets.security.detected-jwt-token.detected-jwt-token",
+        "file_path": "frontend/src/app/app.guard.spec.ts",
+        "line": 46,
+        "end_line": 46,
+        "column": 40,
+        "message": "JWT token detected",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-321: Use of Hard-coded Cryptographic Key"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "5d3749c9-ce6f-57ee-b331-15d2a3207344",
+      "title": "JWT token detected",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "generic.secrets.security.detected-jwt-token.detected-jwt-token",
+        "file_path": "frontend/src/app/last-login-ip/last-login-ip.component.spec.ts",
+        "line": 72,
+        "end_line": 72,
+        "column": 40,
+        "message": "JWT token detected",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-321: Use of Hard-coded Cryptographic Key"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "497b9f97-8537-5bff-aa89-0238834b5cb8",
+      "title": "JWT token detected",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "generic.secrets.security.detected-jwt-token.detected-jwt-token",
+        "file_path": "frontend/src/app/last-login-ip/last-login-ip.component.spec.ts",
+        "line": 78,
+        "end_line": 78,
+        "column": 40,
+        "message": "JWT token detected",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-321: Use of Hard-coded Cryptographic Key"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "90a1c897-1bb1-58c5-9a47-218428db4a14",
+      "title": "Possibility of prototype polluting function detected. By adding or modifying attributes of an object prototype, it is possible to create attributes that exist on every object, or replace critical attributes with malicious ones. This can be problematic if the software depends on existence or non-existence of certain attributes, or uses pre-defined attributes of object prototype (such as hasOwnProperty, toString or valueOf). Possible mitigations might be: freezing the object prototype, using an object without prototypes (via Object.create(null) ), blocking modifications of attributes that resolve to object prototype, using Map instead of object.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop",
+        "file_path": "frontend/src/hacking-instructor/helpers/helpers.ts",
+        "line": 49,
+        "end_line": 49,
+        "column": 9,
+        "message": "Possibility of prototype polluting function detected. By adding or modifying attributes of an object prototype, it is possible to create attributes that exist on every object, or replace critical attributes with malicious ones. This can be problematic if the software depends on existence or non-existence of certain attributes, or uses pre-defined attributes of object prototype (such as hasOwnProperty, toString or valueOf). Possible mitigations might be: freezing the object prototype, using an object without prototypes (via Object.create(null) ), blocking modifications of attributes that resolve to object prototype, using Map instead of object.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "836a6e9f-60ad-5d5b-82a3-62d4661fe8a9",
+      "title": "By default, AWS CloudWatch Log Group is encrypted using AWS-managed keys. However, for added security, it's recommended to configure your own AWS KMS encryption key to protect your log group in CloudWatch. You can either create a new aws_kms_key resource or use the ARN of an existing key in your AWS account to do so.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted",
+        "file_path": "infrastructure/terraform/main.tf",
+        "line": 126,
+        "end_line": 134,
+        "column": 1,
+        "message": "By default, AWS CloudWatch Log Group is encrypted using AWS-managed keys. However, for added security, it's recommended to configure your own AWS KMS encryption key to protect your log group in CloudWatch. You can either create a new aws_kms_key resource or use the ARN of an existing key in your AWS account to do so.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-732: Incorrect Permission Assignment for Critical Resource"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "b2affa76-b92f-5c3f-ba8a-9811a5b47ddf",
+      "title": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address",
+        "file_path": "infrastructure/terraform/networking.tf",
+        "line": 18,
+        "end_line": 30,
+        "column": 1,
+        "message": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1220: Insufficient Granularity of Access Control"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "d3dc5ca6-cb5b-5f38-8912-ff2de7aa9cf0",
+      "title": "ELB has no logging. Missing logs can cause missing important event information.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-elb-access-logs-not-enabled.aws-elb-access-logs-not-enabled",
+        "file_path": "infrastructure/terraform/networking.tf",
+        "line": 122,
+        "end_line": 133,
+        "column": 1,
+        "message": "ELB has no logging. Missing logs can cause missing important event information.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "bea94ce7-fada-53b7-a0d2-4941036bc2c3",
+      "title": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.insecure-load-balancer-tls-version.insecure-load-balancer-tls-version",
+        "file_path": "infrastructure/terraform/networking.tf",
+        "line": 160,
+        "end_line": 160,
+        "column": 3,
+        "message": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "ff0e56db-fe0b-5cb0-beb4-3e664e263721",
+      "title": "Detected possible user input going into a `path.join` or `path.resolve` function. This could possibly lead to a path traversal vulnerability,  where the attacker can access arbitrary files stored in the file system. Instead, be sure to sanitize or validate user input first.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+        "file_path": "lib/antiCheat.ts",
+        "line": 196,
+        "end_line": 196,
+        "column": 50,
+        "message": "Detected possible user input going into a `path.join` or `path.resolve` function. This could possibly lead to a path traversal vulnerability,  where the attacker can access arbitrary files stored in the file system. Instead, be sure to sanitize or validate user input first.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "e6a29de3-77d1-5ea1-916b-15b2875b8b84",
+      "title": "RegExp() called with a `challengeKey` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+        "file_path": "lib/codingChallenges.ts",
+        "line": 76,
+        "end_line": 76,
+        "column": 9,
+        "message": "RegExp() called with a `challengeKey` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1333: Inefficient Regular Expression Complexity"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "86385017-972c-5d4c-ae84-97d6120c40fa",
+      "title": "RegExp() called with a `challengeKey` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+        "file_path": "lib/codingChallenges.ts",
+        "line": 78,
+        "end_line": 78,
+        "column": 16,
+        "message": "RegExp() called with a `challengeKey` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1333: Inefficient Regular Expression Complexity"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "822251f1-c0a0-551d-831a-d15423595858",
+      "title": "Detected a hardcoded hmac key. Avoid hardcoding secrets and consider using an alternate option such as reading the secret from a config file or using an environment variable.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.hardcoded-hmac-key.hardcoded-hmac-key",
+        "file_path": "lib/insecurity.ts",
+        "line": 42,
+        "end_line": 42,
+        "column": 39,
+        "message": "Detected a hardcoded hmac key. Avoid hardcoding secrets and consider using an alternate option such as reading the secret from a config file or using an environment variable.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-798: Use of Hard-coded Credentials"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "4ce340a0-7721-56e3-882b-2342d79f6fa4",
+      "title": "A hard-coded credential was detected. It is not recommended to store credentials in source-code, as this risks secrets being leaked and used by either an internal or external malicious adversary. It is recommended to use environment variables to securely provide credentials or retrieve credentials from a secure vault or HSM (Hardware Security Module).",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
+        "file_path": "lib/insecurity.ts",
+        "line": 54,
+        "end_line": 54,
+        "column": 56,
+        "message": "A hard-coded credential was detected. It is not recommended to store credentials in source-code, as this risks secrets being leaked and used by either an internal or external malicious adversary. It is recommended to use environment variables to securely provide credentials or retrieve credentials from a secure vault or HSM (Hardware Security Module).",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-798: Use of Hard-coded Credentials"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "741634fc-0bf5-566c-b9d0-43a03350807f",
+      "title": "Detected a hardcoded hmac key. Avoid hardcoding secrets and consider using an alternate option such as reading the secret from a config file or using an environment variable.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.hardcoded-hmac-key.hardcoded-hmac-key",
+        "file_path": "lib/insecurity.ts",
+        "line": 150,
+        "end_line": 150,
+        "column": 16,
+        "message": "Detected a hardcoded hmac key. Avoid hardcoding secrets and consider using an alternate option such as reading the secret from a config file or using an environment variable.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-798: Use of Hard-coded Credentials"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "ae035016-e53f-5f7d-a6cf-43da279c5692",
+      "title": "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evaluated content is not definable by external sources.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.browser.security.eval-detected.eval-detected",
+        "file_path": "routes/captcha.ts",
+        "line": 22,
+        "end_line": 22,
+        "column": 20,
+        "message": "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evaluated content is not definable by external sources.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/rest/captcha",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "captchas",
+          "declaration_file": "server.ts",
+          "declaration_line": 634,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика captchas",
+            "импорт обработчика разрешен до routes/captcha.ts",
+            "маршрут объявлен в server.ts:634"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/rest/captcha",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "213bc9db-ba8c-50af-8c7b-20c49a215e1f",
+      "title": "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype. Use literal values for object properties.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.remote-property-injection.remote-property-injection",
+        "file_path": "routes/currentUser.ts",
+        "line": 31,
+        "end_line": 31,
+        "column": 15,
+        "message": "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype. Use literal values for object properties.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-522: Insufficiently Protected Credentials"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/rest/user/whoami",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "retrieveLoggedInUser",
+          "declaration_file": "server.ts",
+          "declaration_line": 619,
+          "query_parameters": [
+            "callback"
+          ],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика retrieveLoggedInUser",
+            "импорт обработчика разрешен до routes/currentUser.ts",
+            "маршрут объявлен в server.ts:619"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/rest/user/whoami?callback=1",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "994ec54a-61ca-53b7-8c81-a5f3c3bc4aaa",
+      "title": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-res-sendfile.express-res-sendfile",
+        "file_path": "routes/fileServer.ts",
+        "line": 32,
+        "end_line": 32,
+        "column": 20,
+        "message": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-73: External Control of File Name or Path"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "ea53b73f-63fd-573a-ada4-3608de668f27",
+      "title": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-res-sendfile.express-res-sendfile",
+        "file_path": "routes/keyServer.ts",
+        "line": 14,
+        "end_line": 14,
+        "column": 20,
+        "message": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-73: External Control of File Name or Path"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/encryptionkeys/:file",
+          "http_methods": [],
+          "handler": "serveKeyFiles",
+          "declaration_file": "server.ts",
+          "declaration_line": 297,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика serveKeyFiles",
+            "импорт обработчика разрешен до routes/keyServer.ts",
+            "маршрут объявлен в server.ts:297"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/encryptionkeys/1",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "c9a8095f-20a9-5741-810f-3d12f2b36ab8",
+      "title": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-res-sendfile.express-res-sendfile",
+        "file_path": "routes/logfileServer.ts",
+        "line": 14,
+        "end_line": 14,
+        "column": 20,
+        "message": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-73: External Control of File Name or Path"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/support/logs/:file",
+          "http_methods": [],
+          "handler": "serveLogFiles",
+          "declaration_file": "server.ts",
+          "declaration_line": 302,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика serveLogFiles",
+            "импорт обработчика разрешен до routes/logfileServer.ts",
+            "маршрут объявлен в server.ts:302"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/support/logs/1",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
       "id": "5a74adf1-5afc-5ffa-b4fd-4293713af65b",
       "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
       "status": "unchecked",
@@ -169,7 +2317,14 @@
           ],
           "handler": "login",
           "declaration_file": "server.ts",
-          "declaration_line": 615
+          "declaration_line": 615,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика login",
+            "импорт обработчика разрешен до routes/login.ts",
+            "маршрут объявлен в server.ts:615"
+          ]
         }
       },
       "verification_history": {
@@ -186,11 +2341,129 @@
       }
     },
     {
-      "id": "3ab6a40a-2fee-5009-86f0-afb48231f79e",
-      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "id": "901d21e0-7f5b-5942-a7fb-b21af900aec9",
+      "title": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
       "status": "unchecked",
       "verdict": null,
       "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-res-sendfile.express-res-sendfile",
+        "file_path": "routes/quarantineServer.ts",
+        "line": 14,
+        "end_line": 14,
+        "column": 20,
+        "message": "The application processes user-input, this is passed to res.sendFile which can allow an attacker to arbitrarily read files on the system through path traversal. It is recommended to perform input validation in addition to canonicalizing the path. This allows you to validate the path against the intended directory it should be accessing.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-73: External Control of File Name or Path"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/ftp/quarantine/:file",
+          "http_methods": [],
+          "handler": "serveQuarantineFiles",
+          "declaration_file": "server.ts",
+          "declaration_line": 290,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика serveQuarantineFiles",
+            "импорт обработчика разрешен до routes/quarantineServer.ts",
+            "маршрут объявлен в server.ts:290"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/ftp/quarantine/1",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "f36abd39-4ef5-5ccc-b12d-9f4766026a4c",
+      "title": "The application redirects to a URL specified by user-supplied input `query` that is not validated. This could redirect users to malicious locations. Consider using an allow-list approach to validate URLs, or warn users they are being redirected to a third-party website.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-open-redirect.express-open-redirect",
+        "file_path": "routes/redirect.ts",
+        "line": 18,
+        "end_line": 18,
+        "column": 20,
+        "message": "The application redirects to a URL specified by user-supplied input `query` that is not validated. This could redirect users to malicious locations. Consider using an allow-list approach to validate URLs, or warn users they are being redirected to a third-party website.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/redirect",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "performRedirect",
+          "declaration_file": "server.ts",
+          "declaration_line": 678,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика performRedirect",
+            "импорт обработчика разрешен до routes/redirect.ts",
+            "маршрут объявлен в server.ts:678"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/redirect",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "3ab6a40a-2fee-5009-86f0-afb48231f79e",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "checked",
+      "verdict": "confirmed",
+      "confirmed_by": "dast",
       "sast": {
         "tool": "semgrep",
         "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
@@ -213,8 +2486,566 @@
           ],
           "handler": "searchProducts",
           "declaration_file": "server.ts",
-          "declaration_line": 621
+          "declaration_line": 621,
+          "query_parameters": [
+            "q"
+          ],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика searchProducts",
+            "импорт обработчика разрешен до routes/search.ts",
+            "маршрут объявлен в server.ts:621"
+          ]
         }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "confirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP нашел 1 совпадающих предупреждений",
+            "target_url": "http://target:3000/rest/products/search?q=1",
+            "http_method": "GET",
+            "parameter": "q",
+            "payload": "1'",
+            "evidence": "HTTP/1.1 500 Internal Server Error"
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "54a8e6ce-1c73-5941-afac-610a57125e21",
+      "title": "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evaluated content is not definable by external sources.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.browser.security.eval-detected.eval-detected",
+        "file_path": "routes/userProfile.ts",
+        "line": 65,
+        "end_line": 65,
+        "column": 22,
+        "message": "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evaluated content is not definable by external sources.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/profile",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "getUserProfile",
+          "declaration_file": "server.ts",
+          "declaration_line": 685,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика getUserProfile",
+            "импорт обработчика разрешен до routes/userProfile.ts",
+            "маршрут объявлен в server.ts:685"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/profile",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "23b6d93c-fc92-5b92-8610-94fb40a52bba",
+      "title": "Found data from an Express or Next web request flowing to `eval`. If this data is user-controllable this can lead to execution of arbitrary system commands in the context of your application process. Avoid `eval` whenever possible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.code-string-concat.code-string-concat",
+        "file_path": "routes/userProfile.ts",
+        "line": 65,
+        "end_line": 65,
+        "column": 22,
+        "message": "Found data from an Express or Next web request flowing to `eval`. If this data is user-controllable this can lead to execution of arbitrary system commands in the context of your application process. Avoid `eval` whenever possible.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/profile",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "getUserProfile",
+          "declaration_file": "server.ts",
+          "declaration_line": 685,
+          "query_parameters": [],
+          "locator_confidence": 0.95,
+          "locator_evidence": [
+            "строка sast находится внутри обработчика getUserProfile",
+            "импорт обработчика разрешен до routes/userProfile.ts",
+            "маршрут объявлен в server.ts:685"
+          ]
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": true,
+          "verdict_output": "unconfirmed",
+          "human_report": {
+            "executor_name": "OWASP ZAP",
+            "action_taken": "точечный active scan найденного endpoint",
+            "result_details": "ZAP не нашел предупреждений с совпадающим CWE на endpoint",
+            "target_url": "http://target:3000/profile",
+            "http_method": "GET",
+            "parameter": null,
+            "payload": null,
+            "evidence": null
+          }
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "d746b4f8-70e4-5452-ac0c-c7f77680165e",
+      "title": "Cannot determine what 'subs' is and it is used with a '<script>' tag. This could be susceptible to cross-site scripting (XSS). Ensure 'subs' is not externally controlled, or sanitize this data.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag",
+        "file_path": "routes/videoHandler.ts",
+        "line": 71,
+        "end_line": 71,
+        "column": 165,
+        "message": "Cannot determine what 'subs' is and it is used with a '<script>' tag. This could be susceptible to cross-site scripting (XSS). Ensure 'subs' is not externally controlled, or sanitize this data.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "f89b3cd0-8f66-5417-a0cd-ab8b98fe81ab",
+      "title": "Detected string concatenation with a non-literal variable in a util.format / console.log function. If an attacker injects a format specifier in the string, it will forge the log message. Try to use constant values for the format string.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "file_path": "server.ts",
+        "line": 157,
+        "end_line": 157,
+        "column": 21,
+        "message": "Detected string concatenation with a non-literal variable in a util.format / console.log function. If an attacker injects a format specifier in the string, it will forge the log message. Try to use constant values for the format string.",
+        "severity": "INFO",
+        "cwe": [
+          "CWE-134: Use of Externally-Controlled Format String"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "12c0bd6c-b9ec-5ec6-840f-2349569c4ac6",
+      "title": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-check-directory-listing.express-check-directory-listing",
+        "file_path": "server.ts",
+        "line": 268,
+        "end_line": 268,
+        "column": 3,
+        "message": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-548: Exposure of Information Through Directory Listing"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "6e9f355a-ef7b-5d96-94da-94d1268a8d4d",
+      "title": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-check-directory-listing.express-check-directory-listing",
+        "file_path": "server.ts",
+        "line": 288,
+        "end_line": 288,
+        "column": 3,
+        "message": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-548: Exposure of Information Through Directory Listing"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "746b8809-33c4-5ddd-bbc9-fe9f0ea60f74",
+      "title": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-check-directory-listing.express-check-directory-listing",
+        "file_path": "server.ts",
+        "line": 292,
+        "end_line": 292,
+        "column": 3,
+        "message": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-548: Exposure of Information Through Directory Listing"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "333909ef-e055-54e7-978b-4059dea85860",
+      "title": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-check-directory-listing.express-check-directory-listing",
+        "file_path": "server.ts",
+        "line": 296,
+        "end_line": 296,
+        "column": 3,
+        "message": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-548: Exposure of Information Through Directory Listing"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "43c15d61-51fe-5ad9-87e1-10d59c52bbf3",
+      "title": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.express-check-directory-listing.express-check-directory-listing",
+        "file_path": "server.ts",
+        "line": 300,
+        "end_line": 300,
+        "column": 3,
+        "message": "Directory listing/indexing is enabled, which may lead to disclosure of sensitive directories and files. It is recommended to disable directory listing unless it is a public resource. If you need directory listing, ensure that sensitive files are inaccessible when querying the resource.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-548: Exposure of Information Through Directory Listing"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "43a3af99-b482-5143-8b19-7c51e0f217a1",
+      "title": "By default, AWS CloudWatch Log Group is encrypted using AWS-managed keys. However, for added security, it's recommended to configure your own AWS KMS encryption key to protect your log group in CloudWatch. You can either create a new aws_kms_key resource or use the ARN of an existing key in your AWS account to do so.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted",
+        "file_path": "terraform/main.tf",
+        "line": 126,
+        "end_line": 134,
+        "column": 1,
+        "message": "By default, AWS CloudWatch Log Group is encrypted using AWS-managed keys. However, for added security, it's recommended to configure your own AWS KMS encryption key to protect your log group in CloudWatch. You can either create a new aws_kms_key resource or use the ARN of an existing key in your AWS account to do so.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-732: Incorrect Permission Assignment for Critical Resource"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "af0d71cb-5872-5dc4-a9ce-153bbf1dd1b7",
+      "title": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address",
+        "file_path": "terraform/networking.tf",
+        "line": 18,
+        "end_line": 30,
+        "column": 1,
+        "message": "Resources in the AWS subnet are assigned a public IP address. Resources should not be exposed on the public internet, but should have access limited to consumers required for the function of your application. Set `map_public_ip_on_launch` to false so that resources are not publicly-accessible.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-1220: Insufficient Granularity of Access Control"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "29bbda10-7cf2-53d1-a246-aa97896427ae",
+      "title": "ELB has no logging. Missing logs can cause missing important event information.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.aws-elb-access-logs-not-enabled.aws-elb-access-logs-not-enabled",
+        "file_path": "terraform/networking.tf",
+        "line": 122,
+        "end_line": 133,
+        "column": 1,
+        "message": "ELB has no logging. Missing logs can cause missing important event information.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "808f18a5-f1f3-5bf2-b96c-d55664c160dd",
+      "title": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "terraform.aws.security.insecure-load-balancer-tls-version.insecure-load-balancer-tls-version",
+        "file_path": "terraform/networking.tf",
+        "line": 160,
+        "end_line": 160,
+        "column": 3,
+        "message": "Detected an AWS load balancer with an insecure TLS version. TLS versions less than 1.2 are considered insecure because they can be broken. To fix this, set your `ssl_policy` to `\"ELBSecurityPolicy-TLS13-1-2-Res-2021-06\"`, or include a default action to redirect to HTTPS.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-326: Inadequate Encryption Strength"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "8ad2445f-281c-5763-b1e8-322780f7a0b9",
+      "title": "Detected an explicit unescape in a Pug template, using either '!=' or '!{...}'. If external data can reach these locations, your application is exposed to a cross-site scripting (XSS) vulnerability. If you must do this, ensure no external data can reach this location.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.express.security.audit.xss.pug.explicit-unescape.template-explicit-unescape",
+        "file_path": "views/promotionVideo.pug",
+        "line": 75,
+        "end_line": 75,
+        "column": 13,
+        "message": "Detected an explicit unescape in a Pug template, using either '!=' or '!{...}'. If external data can reach these locations, your application is exposed to a cross-site scripting (XSS) vulnerability. If you must do this, ensure no external data can reach this location.",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
       },
       "verification_history": {
         "dast": {

@@ -9,6 +9,7 @@ from typing import Sequence
 from data_enricher import VLSBuilder
 
 from .pipeline_runner import PipelineError, SecurityPipeline, SemgrepScanner
+from .dast_scanner import ZapDastScanner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +35,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Semgrep registry ruleset or local config path.",
     )
     parser.add_argument("--semgrep-timeout", type=float, default=300)
+    parser.add_argument(
+        "--dast-base-url",
+        help="Base URL of the running target, for example http://target:3000.",
+    )
+    parser.add_argument(
+        "--zap-network",
+        help="Internal Docker network shared by ZAP and the target.",
+    )
+    parser.add_argument(
+        "--zap-image",
+        default="ghcr.io/zaproxy/zaproxy:stable",
+    )
+    parser.add_argument("--zap-timeout", type=float, default=900)
 
     return parser
 
@@ -45,8 +59,21 @@ def main(argv: Sequence[str] | None = None) -> None:
             config=args.semgrep_config,
             timeout_seconds=args.semgrep_timeout,
         )
-        pipeline = SecurityPipeline(scanner, VLSBuilder())
-        report = pipeline.run(args.target_dir)
+        dast_scanner = None
+        if args.dast_base_url:
+            if not args.zap_network:
+                raise PipelineError("--zap-network is required with --dast-base-url")
+            dast_scanner = ZapDastScanner(
+                docker_network=args.zap_network,
+                image=args.zap_image,
+                timeout_seconds=args.zap_timeout,
+            )
+        pipeline = SecurityPipeline(
+            scanner,
+            VLSBuilder(),
+            dast_scanner=dast_scanner,
+        )
+        report = pipeline.run(args.target_dir, args.dast_base_url)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
             json.dumps(report, ensure_ascii=False, indent=2) + "\n",
@@ -56,4 +83,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         print(f"pipeline failed: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 
+    locator = report["locator"]
+    dast = report["dast"]
+    print(
+        "Endpoint locator: "
+        f"{locator['matched_findings']}/{locator['total_findings']}, "
+        f"confidence={locator['average_confidence']:.2f}"
+    )
+    if dast["requested"]:
+        print(
+            f"DAST: executed={dast['executed']}, "
+            f"skipped={len(dast['skipped'])}"
+        )
     print(f"VLS report written to {args.output}")

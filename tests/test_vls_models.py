@@ -114,6 +114,7 @@ class SastBlockTests(unittest.TestCase):
                 handler="create_user",
                 declaration_file="src/app.py",
                 declaration_line=7,
+                locator_confidence=0.9,
             ),
         )
 

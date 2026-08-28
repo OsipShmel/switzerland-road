@@ -8,8 +8,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from data_enricher import VLSBuilder
+from orchestrator.dast_scanner import DastScanResult
 from orchestrator.endpoint_locator import EndpointLocator
 from orchestrator.pipeline_runner import PipelineError, SecurityPipeline, SemgrepScanner
+from vls import DastReport, DastVerificationStep
 
 
 class SemgrepScannerTests(unittest.TestCase):
@@ -106,6 +108,60 @@ class SecurityPipelineTests(unittest.TestCase):
         self.assertEqual(endpoint["path"], "/users")
         self.assertEqual(endpoint["http_methods"], ["POST"])
         self.assertEqual(endpoint["handler"], "create_user")
+
+    def test_pipeline_applies_confirmed_dast_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "app.py").write_text(
+                textwrap.dedent(
+                    """
+                    @app.get("/search")
+                    def search(q: str):
+                        return raw_query(q)
+                    """
+                ).lstrip(),
+                encoding="utf-8",
+            )
+            scanner = Mock()
+            scanner.scan.return_value = {
+                "results": [
+                    {
+                        "check_id": "python.sql-injection",
+                        "path": "app.py",
+                        "start": {"line": 3},
+                        "extra": {
+                            "message": "sql injection",
+                            "metadata": {"cwe": ["CWE-89"]},
+                        },
+                    }
+                ]
+            }
+            dast = Mock()
+            dast.scan.return_value = DastScanResult(
+                step=DastVerificationStep(
+                    run_executed=True,
+                    verdict_output="confirmed",
+                    human_report=DastReport(
+                        executor_name="OWASP ZAP",
+                        action_taken="active scan",
+                        result_details="SQL injection found",
+                    ),
+                ),
+                target_url="http://target:8000/search",
+                confirmed=True,
+            )
+
+            result = SecurityPipeline(
+                scanner,
+                VLSBuilder(),
+                dast_scanner=dast,
+            ).run(target, "http://target:8000")
+
+        vulnerability = result["vulnerabilities"][0]
+        self.assertEqual(vulnerability["status"], "checked")
+        self.assertEqual(vulnerability["confirmed_by"], "dast")
+        self.assertEqual(result["dast"]["executed"], 1)
+        self.assertEqual(result["locator"]["coverage"], 1.0)
 
 
 class EndpointLocatorTests(unittest.TestCase):
@@ -222,6 +278,9 @@ class EndpointLocatorTests(unittest.TestCase):
         self.assertEqual(endpoint["http_methods"], ["GET"])
         self.assertEqual(endpoint["handler"], "searchProducts")
         self.assertEqual(endpoint["declaration_file"], "server.ts")
+        self.assertEqual(endpoint["query_parameters"], ["q"])
+        self.assertEqual(endpoint["locator_confidence"], 0.95)
+        self.assertEqual(len(endpoint["locator_evidence"]), 3)
 
     def test_combines_express_router_mount_with_local_path(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -36,6 +36,9 @@ class EndpointReference(BaseModel):
     handler: str
     declaration_file: str
     declaration_line: PositiveInt
+    query_parameters: list[str] = Field(default_factory=list)
+    locator_confidence: float = Field(default=0, ge=0, le=1)
+    locator_evidence: list[str] = Field(default_factory=list)
 
 
 class SastBlock(BaseModel):

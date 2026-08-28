@@ -329,6 +329,12 @@ class EndpointLocator:
             "handler": handler,
             "declaration_file": source.relative_to(target).as_posix(),
             "declaration_line": line,
+            "query_parameters": [],
+            "locator_confidence": 0.9,
+            "locator_evidence": [
+                f"строка sast находится внутри обработчика {handler}",
+                f"маршрут объявлен в {source.relative_to(target).as_posix()}:{line}",
+            ],
         }
 
     @staticmethod
