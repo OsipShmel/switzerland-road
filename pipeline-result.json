@@ -1,0 +1,233 @@
+{
+  "target_dir": "/Users/dogma/cft/switzerland-road/target/juice-shop-master",
+  "vulnerabilities": [
+    {
+      "id": "8a5b7b78-eb51-5105-a737-bb247246876c",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "data/static/codefixes/dbSchemaChallenge_1.ts",
+        "line": 5,
+        "end_line": 5,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "021b8fdd-e766-526e-8d1d-3e6ff3e8a5e6",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "data/static/codefixes/dbSchemaChallenge_3.ts",
+        "line": 11,
+        "end_line": 11,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "872a2bd8-df11-5c8e-9cdb-43f4e10f1424",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "data/static/codefixes/unionSqlInjectionChallenge_1.ts",
+        "line": 6,
+        "end_line": 6,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "7040cd03-bc37-5ad7-a1fd-9e70a5d40068",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "data/static/codefixes/unionSqlInjectionChallenge_3.ts",
+        "line": 10,
+        "end_line": 10,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": null
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "5a74adf1-5afc-5ffa-b4fd-4293713af65b",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "routes/login.ts",
+        "line": 34,
+        "end_line": 34,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/rest/user/login",
+          "http_methods": [
+            "POST"
+          ],
+          "handler": "login",
+          "declaration_file": "server.ts",
+          "declaration_line": 615
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    },
+    {
+      "id": "3ab6a40a-2fee-5009-86f0-afb48231f79e",
+      "title": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+      "status": "unchecked",
+      "verdict": null,
+      "confirmed_by": null,
+      "sast": {
+        "tool": "semgrep",
+        "rule_id": "javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection",
+        "file_path": "routes/search.ts",
+        "line": 23,
+        "end_line": 23,
+        "column": 28,
+        "message": "Detected a sequelize statement that is tainted by user-input. This could lead to SQL injection if the variable is user-controlled and is not properly sanitized. In order to prevent SQL injection, it is recommended to use parameterized queries or prepared statements.",
+        "severity": "ERROR",
+        "cwe": [
+          "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+        ],
+        "fingerprint": "requires login",
+        "score": null,
+        "endpoint": {
+          "framework": "express",
+          "path": "/rest/products/search",
+          "http_methods": [
+            "GET"
+          ],
+          "handler": "searchProducts",
+          "declaration_file": "server.ts",
+          "declaration_line": 621
+        }
+      },
+      "verification_history": {
+        "dast": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        },
+        "pentest": {
+          "run_executed": false,
+          "verdict_output": "not_tested",
+          "human_report": null
+        }
+      }
+    }
+  ]
+}

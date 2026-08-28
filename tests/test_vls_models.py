@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from vls import (
     DastReport,
     DastVerificationStep,
+    EndpointReference,
     PentestReport,
     PentestVerificationStep,
     SastBlock,
@@ -100,6 +101,23 @@ class SastBlockTests(unittest.TestCase):
                 line=10,
                 score=11,
             )
+
+    def test_sast_block_accepts_endpoint_reference(self) -> None:
+        sast = SastBlock(
+            rule_id="python.sql-injection",
+            file_path="src/app.py",
+            line=10,
+            endpoint=EndpointReference(
+                framework="fastapi",
+                path="/users",
+                http_methods=["POST"],
+                handler="create_user",
+                declaration_file="src/app.py",
+                declaration_line=7,
+            ),
+        )
+
+        self.assertEqual(sast.endpoint.path, "/users")
 
 
 if __name__ == "__main__":

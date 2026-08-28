@@ -27,6 +27,17 @@ class VerdictOutput(StrEnum):
     NOT_TESTED = "not_tested"
 
 
+class EndpointReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    framework: str
+    path: str
+    http_methods: list[str] = Field(default_factory=list)
+    handler: str
+    declaration_file: str
+    declaration_line: PositiveInt
+
+
 class SastBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -41,6 +52,7 @@ class SastBlock(BaseModel):
     cwe: list[str] = Field(default_factory=list)
     fingerprint: str | None = None
     score: float | None = Field(default=None, ge=0, le=10)
+    endpoint: EndpointReference | None = None
 
 
 class InstrumentReport(BaseModel):

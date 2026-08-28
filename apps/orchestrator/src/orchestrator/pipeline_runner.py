@@ -7,6 +7,8 @@ from typing import Any
 
 from data_enricher import VLSBuilder
 
+from .endpoint_locator import EndpointLocator
+
 
 class PipelineError(RuntimeError):
     """ошибка этапа пайплайна."""
@@ -68,14 +70,21 @@ class SemgrepScanner:
 class SecurityPipeline:
     """управляет sast-пайплайном."""
 
-    def __init__(self, scanner: SemgrepScanner, builder: VLSBuilder) -> None:
+    def __init__(
+        self,
+        scanner: SemgrepScanner,
+        builder: VLSBuilder,
+        endpoint_locator: EndpointLocator | None = None,
+    ) -> None:
         self.scanner = scanner
         self.builder = builder
+        self.endpoint_locator = endpoint_locator or EndpointLocator()
 
     def run(self, target_dir: str | Path) -> dict[str, Any]:
         target = Path(target_dir).expanduser().resolve()
         semgrep_output = self.scanner.scan(target)
-        vulnerabilities = self.builder.build(semgrep_output)
+        enriched_output = self.endpoint_locator.enrich(target, semgrep_output)
+        vulnerabilities = self.builder.build(enriched_output)
         return {
             "target_dir": str(target),
             "vulnerabilities": vulnerabilities,

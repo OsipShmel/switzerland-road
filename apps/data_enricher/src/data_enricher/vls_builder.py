@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
-from vls import SastBlock, VLS
+from vls import EndpointReference, SastBlock, VLS
 
 
 class VLSBuilder:
@@ -32,6 +32,8 @@ class VLSBuilder:
         rule_id = str(finding.get("check_id") or "unknown-semgrep-rule")
         severity = extra.get("severity")
         fingerprint = extra.get("fingerprint")
+        endpoint_data = self._mapping(finding.get("endpoint"))
+        endpoint = EndpointReference.model_validate(endpoint_data) if endpoint_data else None
         return SastBlock(
             rule_id=rule_id,
             file_path=str(finding.get("path") or ""),
@@ -42,6 +44,7 @@ class VLSBuilder:
             severity=str(severity) if severity is not None else None,
             cwe=self._string_list(metadata.get("cwe")),
             fingerprint=str(fingerprint) if fingerprint is not None else None,
+            endpoint=endpoint,
         )
 
     def _build_record(self, sast: SastBlock) -> dict[str, Any]:
