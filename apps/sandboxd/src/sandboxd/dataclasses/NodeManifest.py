@@ -19,12 +19,8 @@ class NodeManifest:
 
     mem_limit: str = "1g"
     nano_cpus: int | None = None
-    restart_policy: dict[str, str] = field(
-        default_factory=lambda: {"Name": "unless-stopped"}
-    ) # "no" if for target, else unless-stopped
+    restart_policy: dict[str, str] = field(default_factory=lambda: {"Name": "unless-stopped"}) # "no" if for target, else unless-stopped
 
-    networks: tuple[str, ...] = field(default_factory=tuple)
-    dockerfile: str = "Dockerfile"
     extra_options: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -45,7 +41,7 @@ class NodeManifest:
                     hasher.update(file_path.read_bytes())
                 except IOError:
                     pass
-        return hasher.hexdigest()[:5]
+        return hasher.hexdigest()[:12]
 
     @classmethod
     def create_disposable(cls, source_path: Path, target_port: int, **kwargs) -> NodeManifest:

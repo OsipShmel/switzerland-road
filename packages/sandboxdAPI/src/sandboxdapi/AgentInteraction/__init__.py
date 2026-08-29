@@ -16,6 +16,6 @@ from .FlagApi import CheckSecretFlagRequest, CheckSecretFlagResponse
 __all__ = [
     "SessionState", "StartCheckSessionResponse", "Verdict", "ProofType", "VulnerabilityReport",
     "Proof", "SubmitCheckResultRequest", "SubmitCheckResultResponse", "FinishCheckSessionResponse",
-    "LogLevel", "ExplicitLogContext", "AgentLog", "AgentLogAcceptedResponse",
+    "LogLevel", "ExplicitLogContext", "AgentLog", AgentLogAcceptedResponse,
     "CheckSecretFlagRequest", "CheckSecretFlagResponse",
 ]

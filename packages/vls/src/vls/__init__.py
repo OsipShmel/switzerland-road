@@ -13,8 +13,6 @@ from .models import (
     VerdictOutput,
 )
 
-from .registry import VlsRegistry
-
 __all__ = [
     "VLS",
     "VLSStatus",
@@ -28,5 +26,4 @@ __all__ = [
     "SastBlock",
     "VerificationHistory",
     "VerdictOutput",
-    "VlsRegistry",
 ]

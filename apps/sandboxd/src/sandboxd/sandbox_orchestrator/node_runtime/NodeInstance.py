@@ -1,8 +1,6 @@
 from __future__ import annotations
 from docker.models.containers import Container
 
-from sandboxd.sandbox_orchestrator.node_runtime.helpers import get_ip
-
 
 class NodeInstance:
     def __init__(self, alias: str, container: Container) -> None:
@@ -19,9 +17,6 @@ class NodeInstance:
     def is_running(self) -> bool:
         self._container.reload()
         return self._container.status == "running"
-
-    def ip(self, network: str) -> str:
-        return get_ip(self._container, network)
 
     #TODO?
     @property

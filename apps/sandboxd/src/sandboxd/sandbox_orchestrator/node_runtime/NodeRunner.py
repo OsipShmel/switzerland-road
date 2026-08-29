@@ -12,8 +12,6 @@ from docker.errors import ImageNotFound
 from docker.models.containers import Container
 
 from sandboxd.dataclasses.NodeManifest import NodeManifest
-from sandboxd.sandbox_orchestrator.node_runtime.NodeInstance import NodeInstance
-from sandboxd.sandbox_orchestrator.node_runtime.helpers import get_ip
 
 
 class NodeRunner:
@@ -28,20 +26,18 @@ class NodeRunner:
         if not self._image_exists(image_tag):
             build_ctx = self._prepare_build_context(manifest.source_path)
             try:
-                self._build_image(build_ctx, image_tag, manifest.dockerfile)
+                self._build_image(build_ctx, image_tag)
             finally:
                 self._cleanup_build_context(build_ctx)
 
         container = self._run_container(manifest)
-        healthcheck_network = self._healthcheck_network(manifest)
+
         try:
             self._wait_until_healthy(
                 container=container,
-                network = healthcheck_network,
                 target_port=manifest.target_port,
                 health_path=manifest.health_path,
-                timeout=manifest.health_timeout,
-            )
+                timeout=manifest.health_timeout,)
             return container
         except Exception:
             self.down(container)
@@ -49,17 +45,8 @@ class NodeRunner:
 
     @staticmethod
     def down(container: Container) -> None:
-        #container.stop()
-        container.remove(force=True)
-
-    @staticmethod
-    def _healthcheck_network(manifest: NodeManifest) -> str:
-        if not manifest.networks:
-            raise RuntimeError(
-                f"node has no networks attached (network_mode=none); "
-                f"HTTP healthcheck is not possible"
-            )
-        return manifest.networks[0]
+        container.stop()
+        container.remove()
 
     @staticmethod
     def _prepare_build_context(source_path: Path) -> Path:
@@ -74,23 +61,17 @@ class NodeRunner:
         except ImageNotFound:
             return False
 
-    def _build_image(self, build_ctx: Path, tag: str, dockerfile: str,) -> str:
-        # TODO! бля пора бы под логирование переделывать
-        print(f" starting Docker image build: {build_ctx}, tag: {tag},")
+    def _build_image(self, build_ctx: Path, tag: str) -> str:
+        print(f" Начинаем сборку Docker-образа {tag}...")
 
-        for chunk in self._client.api.build(
-                path=str(build_ctx),
-                tag=tag,
-                rm=True,
-                decode=True,
-                dockerfile=dockerfile):
+        for chunk in self._client.api.build(path=str(build_ctx), tag=tag, rm=True, decode=True):
             if "stream" in chunk:
                 print(chunk["stream"], end="")
 
             if "error" in chunk:
                 raise RuntimeError(f"Docker build failed: {chunk['error']}")
 
-        print(f"\n Image {tag} successfully built")
+        print(f"\n Образ {tag} успешно собран!")
         return tag
 
     def _run_container(self, manifest: NodeManifest) -> Container:
@@ -111,9 +92,9 @@ class NodeRunner:
                 )
             }
         else:
-             run_kwargs["ports"] = {
-                 f"{manifest.target_port}/tcp": None
-             }
+            run_kwargs["ports"] = {
+                f"{manifest.target_port}/tcp": None
+            }
 
         if manifest.nano_cpus is not None:
             run_kwargs["nano_cpus"] = manifest.nano_cpus
@@ -122,57 +103,23 @@ class NodeRunner:
 
         return self._client.containers.run(**run_kwargs)
 
-    #TODO!
-    # При текущей конфигурации это кажется нормально, а вот че дальше хз
-    # Че то в моменте плавит от конфигурирования сети здесь так что TODO!
+
     @staticmethod
-    def _wait_until_healthy(
-            container: Container,
-            network: str,
-            target_port: int,
-            health_path: str,
-            timeout: float) -> None:
+    def _wait_until_healthy(container: Container, target_port: int, health_path: str, timeout: float) -> None:
+        container.reload()
+        host_port = container.attrs["NetworkSettings"]["Ports"][f"{target_port}/tcp"][0]["HostPort"]
+        url = f"http://localhost:{host_port}{health_path}"
 
         deadline = time.monotonic() + timeout
-        last_error: Exception | None = None
-        url: str | None = None
-
         while time.monotonic() < deadline:
-
             try:
-                container.reload()
-
-                if container.status != "running":
-                    raise RuntimeError(
-                        f"Container {container.name} is not running"
-                        f"(status={container.status})"
-                    )
-
-                ip_address = get_ip(container, network)
-
-                url = f"http://{ip_address}:{target_port}{health_path}"
-
-                response = httpx.get(url, timeout=2.0,)
-
-                if response.status_code == 200:
+                if httpx.get(url, timeout=2.0).status_code == 200:
                     return
 
-                last_error = RuntimeError(f"Healthcheck returned HTTP {response.status_code}")
-
-            except Exception as error:
-                last_error = error
-
+            except httpx.HTTPError:
+                pass
             time.sleep(1.0)
-
-        error_suffix = ""
-
-        if last_error is not None:
-            error_suffix =  f". Last error: {last_error}"
-
-        raise TimeoutError(
-            f"Service did not become healthy in time for container {container.name}. URL: {url}"
-            f"{error_suffix}"
-        )
+        raise TimeoutError(f"service did not become healthy in time: {url}")
 
     @staticmethod
     def _cleanup_build_context(build_ctx: Path) -> None:
