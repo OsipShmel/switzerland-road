@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
 
+
     init: true
     privileged: true
     cgroup: host

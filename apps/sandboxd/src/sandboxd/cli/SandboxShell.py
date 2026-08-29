@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cmd
 import json
+import os
 import time
 from pathlib import Path
 
@@ -13,9 +14,6 @@ from sandboxd.sandbox_orchestrator.SandboxOrchestrator import (
 )
 
 import traceback
-
-TARGET_NETWORK = "sandbox-target-net"
-CONTROL_NETWORK = "sandbox-control-net"
 
 PROJECT_ROOT = Path("/app")
 
@@ -36,7 +34,21 @@ AGENT_DIR = (
     / "pentest_stub"
 )
 
-GATEWAY_DOCKERFILE = "apps/sandboxd/tests/gateway/Dockerfile"
+COMMON_HASH_EXCLUDES = (
+    "apps/sandboxd/tests/target",
+    ".git",
+    ".venv",
+    "__pycache__",
+)
+
+
+TARGET_NETWORK = "sandbox-target-net"
+CONTROL_NETWORK = "sandbox-control-net"
+EGRESS_NETWORK = "sandbox-egress-net"
+
+
+
+
 
 GATEWAY_LOGS_DIR = Path("/var/lib/sandboxd/gateway_logs")
 
@@ -48,50 +60,63 @@ def _target_manifest() -> NodeManifest:
     return NodeManifest.create_disposable(
         source_path=TARGET_DIR,
         target_port=3000,
-        health_path=("/rest/admin/application-version"),
-        networks=(TARGET_NETWORK,),
+        health_path="/rest/admin/application-version",
+        internal_networks=(TARGET_NETWORK,),
     )
 
 
+
+AGENT_DOCKERFILE = "apps/pentest_agent/Dockerfile"
+
 def _agent_manifest() -> NodeManifest:
     return NodeManifest.create_disposable(
-        source_path=AGENT_DIR,
+        source_path=PROJECT_ROOT,
+        dockerfile=AGENT_DOCKERFILE,
         target_port=AGENT_TARGET_PORT,
         health_path="/health",
-
-        #published_port=AGENT_CONTROL_PORT,
-        networks=(
-            CONTROL_NETWORK,
-            TARGET_NETWORK,
-        ),
+        internal_networks=(CONTROL_NETWORK, TARGET_NETWORK),
+        hash_excludes=COMMON_HASH_EXCLUDES,
         env={
             "SANDBOXD_GATEWAY_URL": "http://gateway:9000",
             "TARGET_URL": "http://target:3000",
+            "OLLAMA_BASE_URL": "http://llm-egress:11434",
+            "OLLAMA_MODEL": "gemma4-26b-think:latest"
         },
     )
 
 
+GATEWAY_DOCKERFILE = "apps/sandboxd/tests/gateway/Dockerfile"
+
 def _gateway_manifest() -> NodeManifest:
-
-    GATEWAY_LOGS_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
+    GATEWAY_LOGS_DIR.mkdir(parents=True, exist_ok=True)
     return NodeManifest.create_stable(
         source_path=PROJECT_ROOT,
         target_port=9000,
         health_path="/health",
         dockerfile=GATEWAY_DOCKERFILE,
-        networks=(CONTROL_NETWORK,),
-        extra_options={
-            "volumes": {
-                str(GATEWAY_LOGS_DIR): {
-                    "bind": "/logs",
-                    "mode": "rw",
-                },
-            },
+        internal_networks=(CONTROL_NETWORK,),
+        hash_excludes=COMMON_HASH_EXCLUDES,
+        extra_options={"volumes": {str(GATEWAY_LOGS_DIR): {"bind": "/logs", "mode": "rw"}}},
+    )
+
+
+EGRESS_DOCKERFILE ="apps/sandboxd/tests/llm_egress/Dockerfile"
+
+def _llm_egress_manifest() -> NodeManifest:
+    return NodeManifest.create_stable(
+        source_path=PROJECT_ROOT,
+        dockerfile=EGRESS_DOCKERFILE,
+        target_port=11434,
+        health_check_type="tcp",
+        health_path="",                    # не используется в tcp-режиме
+        internal_networks=(EGRESS_NETWORK, CONTROL_NETWORK),
+        external_networks=(EGRESS_NETWORK,),
+        hash_excludes=COMMON_HASH_EXCLUDES,
+        env={
+            "UPSTREAM_HOST": "172.25.0.1",
+            "UPSTREAM_PORT": os.getenv("LLM_UPSTREAM_PORT", "11434"),
         },
+        #extra_options={"extra_hosts": {"host.docker.internal": "172.25.0.1"}}
     )
 
 
@@ -131,12 +156,13 @@ class SandboxShell(cmd.Cmd):
             print( "already up — use 'down' first")
             return
 
-        print("bringing up target + gateway + agent...")
+        print("bringing up target + gateway + llm_egress + agent...")
 
         try:
             self._orchestrator.start(
                 target=_target_manifest(),
                 gateway = _gateway_manifest(),
+                llm_egress = _llm_egress_manifest(),
                 agent = _agent_manifest(),
             )
 
@@ -147,7 +173,6 @@ class SandboxShell(cmd.Cmd):
                 "aliases: target, gateway, agent"
             )
 
-            #print(f"agent target: http://localhost:{AGENT_TARGET_PORT}")
 
         except Exception as error:
             print(f"up failed: {error}")
@@ -331,6 +356,7 @@ class SandboxShell(cmd.Cmd):
         for alias in (
             "target",
             "gateway",
+            "llm_egress"
             "agent",
         ):
 

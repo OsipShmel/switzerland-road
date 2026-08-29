@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import docker
-from docker.errors import NotFound, APIError
+from docker.errors import NotFound
 
 from sandboxd.dataclasses.NodeManifest import NodeManifest
 from sandboxd.sandbox_orchestrator.node_runtime.NodeRunner import NodeRunner
@@ -21,9 +21,18 @@ class SandboxOrchestrator:
 
     def start(self, **manifests: NodeManifest) -> None:
         required_networks: set[str] = set()
+        network_internal: dict[str, bool] = {}
 
-        for manifest in manifests.values():
-            required_networks.update(manifest.networks)
+        for alias, manifest in manifests.items():
+            required_networks.update(manifest.internal_networks)
+            for name in manifest.internal_networks:
+                wants_internal = name not in manifest.external_networks
+                if name in network_internal and network_internal[name] != wants_internal:
+                    raise ValueError(
+                        f"network '{name}' declared both internal and external "
+                        f"across manifests (conflict introduced by node '{alias}')"
+                    )
+                network_internal[name] = wants_internal
 
         for alias in manifests:
             self._ensure_clean_container(alias)
@@ -31,16 +40,16 @@ class SandboxOrchestrator:
             self._ensure_clean_network(name)
 
         for name in required_networks:
-            self._client.networks.create(name, driver="bridge", internal=True)
+            self._client.networks.create(name, driver="bridge", internal=network_internal[name])
 
         self._network_names = required_networks
         self._network_name = next(iter(self._network_names), None)
 
         for alias, manifest in manifests.items():
-            if len(manifest.networks) != len(set(manifest.networks)):
+            if len(manifest.internal_networks) != len(set(manifest.internal_networks)):
                 raise ValueError(
                     f"Node '{alias}' contains duplicate "
-                    f"networks: {manifest.networks}"
+                    f"networks: {manifest.internal_networks}"
                 )
             self._manifests[alias] = manifest
             self._instances[alias] = self._spawn_node(alias, manifest)
@@ -72,11 +81,13 @@ class SandboxOrchestrator:
             except Exception as error:
                 errors.append(f"{alias}: {error}")
 
-        if self._network_name:
+        for network_name in self._network_names:
             try:
-                self._ensure_clean_network(self._network_name)
+                self._ensure_clean_network(network_name)
             except Exception as error:
-                errors.append(f"network cleanup: {error}")
+                errors.append(f"network cleanup ({network_name}): {error}")
+
+        self._network_names = set()
         self._network_name = None
 
         if errors:
@@ -88,7 +99,7 @@ class SandboxOrchestrator:
     def _spawn_node(self, alias: str, manifest: NodeManifest) -> NodeInstance:
         self._ensure_clean_container(alias)
 
-        networks = tuple(dict.fromkeys(manifest.networks))
+        networks = tuple(dict.fromkeys(manifest.internal_networks))
         print(f"starting node '{alias}' with networks={networks}")
 
         extra_options = {**manifest.extra_options, "name": alias}
@@ -98,10 +109,10 @@ class SandboxOrchestrator:
         else:
             extra_options["network_mode"] = "none"
 
-        attached = replace( manifest, extra_options=extra_options, networks=networks,)
+        attached = replace( manifest, extra_options=extra_options, internal_networks=networks,)
         container = self._runner.up(attached)
 
-        for network_name in manifest.networks[1:]:
+        for network_name in manifest.internal_networks[1:]:
             print(f"connecting node '{alias}' to network '{network_name}'")
             network = self._client.networks.get(network_name)
             network.connect(container)
