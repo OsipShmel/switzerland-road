@@ -80,6 +80,54 @@ class VerificationStepTests(unittest.TestCase):
                 verdict_output="unconfirmed",
             )
 
+    def test_vls_applies_confirmed_dast_step(self) -> None:
+        vls = VLS(id="finding-id", title="sql injection")
+        step = DastVerificationStep(
+            run_executed=True,
+            verdict_output="confirmed",
+            human_report=DastReport(
+                executor_name="OWASP ZAP",
+                action_taken="active scan",
+                result_details="sql injection found",
+            ),
+        )
+
+        updated = vls.with_dast_verification(step)
+
+        self.assertTrue(updated.verification_history.dast.run_executed)
+        self.assertEqual(updated.status, "checked")
+        self.assertEqual(updated.verdict, "confirmed")
+        self.assertEqual(updated.confirmed_by, "dast")
+
+    def test_vls_applies_unconfirmed_dast_step(self) -> None:
+        vls = VLS(id="finding-id", title="sql injection")
+        step = DastVerificationStep(
+            run_executed=True,
+            verdict_output="unconfirmed",
+            human_report=DastReport(
+                executor_name="OWASP ZAP",
+                action_taken="active scan",
+                result_details="issue was not confirmed",
+            ),
+        )
+
+        updated = vls.with_dast_verification(step)
+
+        self.assertTrue(updated.verification_history.dast.run_executed)
+        self.assertEqual(updated.status, "unchecked")
+        self.assertIsNone(updated.verdict)
+        self.assertIsNone(updated.confirmed_by)
+
+    def test_dast_confirmation_requires_confirmed_step(self) -> None:
+        with self.assertRaises(ValidationError):
+            VLS(
+                id="finding-id",
+                title="sql injection",
+                status="checked",
+                verdict="confirmed",
+                confirmed_by="dast",
+            )
+
 
 class SastBlockTests(unittest.TestCase):
     def test_sast_block_has_safe_defaults(self) -> None:

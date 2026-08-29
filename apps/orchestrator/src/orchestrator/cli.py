@@ -48,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="ghcr.io/zaproxy/zaproxy:stable",
     )
     parser.add_argument("--zap-timeout", type=float, default=900)
+    parser.add_argument(
+        "--disable-correlation",
+        action="store_true",
+        help="Skip endpoint lookup and targeted DAST correlation.",
+    )
 
     return parser
 
@@ -60,7 +65,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             timeout_seconds=args.semgrep_timeout,
         )
         dast_scanner = None
-        if args.dast_base_url:
+        # отключенная корреляция не создает сканер dast
+        if args.dast_base_url and not args.disable_correlation:
             if not args.zap_network:
                 raise PipelineError("--zap-network is required with --dast-base-url")
             dast_scanner = ZapDastScanner(
@@ -73,7 +79,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             VLSBuilder(),
             dast_scanner=dast_scanner,
         )
-        report = pipeline.run(args.target_dir, args.dast_base_url)
+        report = pipeline.run(
+            args.target_dir,
+            args.dast_base_url,
+            correlation_enabled=not args.disable_correlation,
+        )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
             json.dumps(report, ensure_ascii=False, indent=2) + "\n",
@@ -85,12 +95,15 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     locator = report["locator"]
     dast = report["dast"]
-    print(
-        "Endpoint locator: "
-        f"{locator['matched_findings']}/{locator['total_findings']}, "
-        f"confidence={locator['average_confidence']:.2f}"
-    )
-    if dast["requested"]:
+    if locator["enabled"]:
+        print(
+            "Endpoint locator: "
+            f"{locator['matched_findings']}/{locator['total_findings']}, "
+            f"confidence={locator['average_confidence']:.2f}"
+        )
+    else:
+        print("Endpoint correlation: disabled")
+    if dast["requested"] and dast["correlation_enabled"]:
         print(
             f"DAST: executed={dast['executed']}, "
             f"skipped={len(dast['skipped'])}"

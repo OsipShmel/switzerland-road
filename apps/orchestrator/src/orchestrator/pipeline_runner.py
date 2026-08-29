@@ -85,13 +85,29 @@ class SecurityPipeline:
         self,
         target_dir: str | Path,
         dast_base_url: str | None = None,
+        correlation_enabled: bool = True,
     ) -> dict[str, Any]:
         target = Path(target_dir).expanduser().resolve()
         semgrep_output = self.scanner.scan(target)
-        enriched_output = self.endpoint_locator.enrich(target, semgrep_output)
+        # без корреляции исходный sast сразу идет в vls
+        enriched_output = (
+            self.endpoint_locator.enrich(target, semgrep_output)
+            if correlation_enabled
+            else semgrep_output
+        )
         vulnerabilities = self.builder.build(enriched_output)
-        locator_summary = self._locator_summary(vulnerabilities)
-        dast_summary = self._run_dast(vulnerabilities, dast_base_url)
+        locator_summary = self._locator_summary(vulnerabilities, correlation_enabled)
+        # точечный dast зависит от найденного endpoint
+        dast_summary = (
+            self._run_dast(vulnerabilities, dast_base_url)
+            if correlation_enabled
+            else {
+                "requested": dast_base_url is not None,
+                "correlation_enabled": False,
+                "executed": 0,
+                "skipped": [],
+            }
+        )
         return {
             "target_dir": str(target),
             "locator": locator_summary,
@@ -100,7 +116,10 @@ class SecurityPipeline:
         }
 
     @staticmethod
-    def _locator_summary(vulnerabilities: list[dict[str, Any]]) -> dict[str, Any]:
+    def _locator_summary(
+        vulnerabilities: list[dict[str, Any]],
+        enabled: bool = True,
+    ) -> dict[str, Any]:
         matches = []
         for vulnerability in vulnerabilities:
             endpoint = (vulnerability.get("sast") or {}).get("endpoint")
@@ -122,6 +141,7 @@ class SecurityPipeline:
             else 0.0
         )
         return {
+            "enabled": enabled,
             "total_findings": total,
             "matched_findings": len(matches),
             "coverage": len(matches) / total if total else 0.0,
@@ -136,7 +156,12 @@ class SecurityPipeline:
     ) -> dict[str, Any]:
         requested = base_url is not None
         if not requested:
-            return {"requested": False, "executed": 0, "skipped": []}
+            return {
+                "requested": False,
+                "correlation_enabled": True,
+                "executed": 0,
+                "skipped": [],
+            }
         if self.dast_scanner is None:
             raise PipelineError("dast base URL задан, но ZAP scanner не настроен")
 
@@ -155,18 +180,14 @@ class SecurityPipeline:
                 continue
 
             executed += 1
-            vulnerability["verification_history"]["dast"] = result.step.model_dump(
-                mode="json"
+            # vls сам применяет результат выполненного dast-этапа
+            record = VLS.model_validate(vulnerability).with_dast_verification(
+                result.step
             )
-            if result.confirmed:
-                vulnerability["status"] = "checked"
-                vulnerability["verdict"] = "confirmed"
-                vulnerability["confirmed_by"] = "dast"
-            vulnerabilities[index] = VLS.model_validate(vulnerability).model_dump(
-                mode="json"
-            )
+            vulnerabilities[index] = record.model_dump(mode="json")
         return {
             "requested": True,
+            "correlation_enabled": True,
             "executed": executed,
             "skipped": skipped,
         }

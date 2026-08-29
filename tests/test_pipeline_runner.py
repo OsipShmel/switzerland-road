@@ -69,6 +69,42 @@ class SecurityPipelineTests(unittest.TestCase):
         self.assertEqual(result["vulnerabilities"], [])
         scanner.scan.assert_called_once_with(Path.cwd().resolve())
 
+    def test_pipeline_can_disable_correlation(self) -> None:
+        scanner = Mock()
+        scanner.scan.return_value = {
+            "results": [
+                {
+                    "check_id": "python.sql-injection",
+                    "path": "app.py",
+                    "start": {"line": 1},
+                    "extra": {"message": "sql injection"},
+                }
+            ]
+        }
+        locator = Mock()
+        dast = Mock()
+        pipeline = SecurityPipeline(
+            scanner,
+            VLSBuilder(),
+            endpoint_locator=locator,
+            dast_scanner=dast,
+        )
+
+        result = pipeline.run(
+            ".",
+            "http://target:8000",
+            correlation_enabled=False,
+        )
+
+        locator.enrich.assert_not_called()
+        dast.scan.assert_not_called()
+        self.assertFalse(result["locator"]["enabled"])
+        self.assertFalse(result["dast"]["correlation_enabled"])
+        self.assertIsNone(result["vulnerabilities"][0]["sast"]["endpoint"])
+        dast_step = result["vulnerabilities"][0]["verification_history"]["dast"]
+        self.assertFalse(dast_step["run_executed"])
+        self.assertEqual(dast_step["verdict_output"], "not_tested")
+
     def test_pipeline_adds_endpoint_to_vls(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
@@ -160,8 +196,64 @@ class SecurityPipelineTests(unittest.TestCase):
         vulnerability = result["vulnerabilities"][0]
         self.assertEqual(vulnerability["status"], "checked")
         self.assertEqual(vulnerability["confirmed_by"], "dast")
+        self.assertTrue(
+            vulnerability["verification_history"]["dast"]["run_executed"]
+        )
+        self.assertEqual(
+            vulnerability["verification_history"]["dast"]["verdict_output"],
+            "confirmed",
+        )
         self.assertEqual(result["dast"]["executed"], 1)
         self.assertEqual(result["locator"]["coverage"], 1.0)
+
+    def test_pipeline_keeps_unconfirmed_dast_step_in_vls(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "app.py").write_text(
+                "@app.get('/search')\ndef search(q: str):\n    return raw_query(q)\n",
+                encoding="utf-8",
+            )
+            scanner = Mock()
+            scanner.scan.return_value = {
+                "results": [
+                    {
+                        "check_id": "python.sql-injection",
+                        "path": "app.py",
+                        "start": {"line": 3},
+                        "extra": {"message": "sql injection"},
+                    }
+                ]
+            }
+            dast = Mock()
+            dast.scan.return_value = DastScanResult(
+                step=DastVerificationStep(
+                    run_executed=True,
+                    verdict_output="unconfirmed",
+                    human_report=DastReport(
+                        executor_name="OWASP ZAP",
+                        action_taken="active scan",
+                        result_details="issue was not confirmed",
+                    ),
+                ),
+                target_url="http://target:8000/search",
+                confirmed=False,
+            )
+
+            result = SecurityPipeline(
+                scanner,
+                VLSBuilder(),
+                dast_scanner=dast,
+            ).run(target, "http://target:8000")
+
+        vulnerability = result["vulnerabilities"][0]
+        self.assertEqual(vulnerability["status"], "unchecked")
+        self.assertTrue(
+            vulnerability["verification_history"]["dast"]["run_executed"]
+        )
+        self.assertEqual(
+            vulnerability["verification_history"]["dast"]["verdict_output"],
+            "unconfirmed",
+        )
 
 
 class EndpointLocatorTests(unittest.TestCase):
@@ -200,6 +292,76 @@ class EndpointLocatorTests(unittest.TestCase):
         self.assertEqual(endpoint["path"], "/api/users/{id}")
         self.assertEqual(endpoint["http_methods"], ["GET"])
 
+    def test_finds_spring_method_and_parameter_locations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            source = target / "UserController.java"
+            source.write_text(
+                textwrap.dedent(
+                    """
+                    @RequestMapping("/api")
+                    public class UserController {
+                        @RequestMapping(path = "/users/{id}", method = {RequestMethod.PUT, RequestMethod.PATCH})
+                        public String update(@PathVariable("id") String id, @RequestParam(name = "q", required = false) String query, @RequestBody String payload) {
+                            return repository.rawQuery(query);
+                        }
+                    }
+                    """
+                ).lstrip(),
+                encoding="utf-8",
+            )
+
+            output = EndpointLocator().enrich(
+                target,
+                {"results": [{"path": "UserController.java", "start": {"line": 5}}]},
+            )
+
+        endpoint = output["results"][0]["endpoint"]
+        self.assertEqual(endpoint["http_methods"], ["PUT", "PATCH"])
+        self.assertIn(
+            {"name": "id", "location": "path", "required": True},
+            endpoint["parameters"],
+        )
+        self.assertIn(
+            {"name": "q", "location": "query", "required": False},
+            endpoint["parameters"],
+        )
+        self.assertIn(
+            {"name": "payload", "location": "body", "required": True},
+            endpoint["parameters"],
+        )
+
+    def test_finds_fastapi_patch_parameters(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "app.py").write_text(
+                textwrap.dedent(
+                    """
+                    @app.patch("/users/{user_id}")
+                    async def update_user(user_id: int, payload: str = Body(...), q: str | None = None):
+                        return raw_query(q)
+                    """
+                ).lstrip(),
+                encoding="utf-8",
+            )
+
+            output = EndpointLocator().enrich(
+                target,
+                {"results": [{"path": "app.py", "start": {"line": 3}}]},
+            )
+
+        endpoint = output["results"][0]["endpoint"]
+        self.assertEqual(endpoint["http_methods"], ["PATCH"])
+        self.assertIn(
+            {"name": "user_id", "location": "path", "required": True},
+            endpoint["parameters"],
+        )
+        self.assertIn(
+            {"name": "payload", "location": "body", "required": True},
+            endpoint["parameters"],
+        )
+        self.assertIn("q", endpoint["query_parameters"])
+
     def test_finds_django_path_in_urls_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
@@ -226,6 +388,7 @@ class EndpointLocatorTests(unittest.TestCase):
         self.assertEqual(endpoint["framework"], "django")
         self.assertEqual(endpoint["path"], "/search/")
         self.assertEqual(endpoint["declaration_file"], "urls.py")
+        self.assertIn("q", endpoint["query_parameters"])
 
     def test_does_not_read_file_outside_target(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -320,6 +483,37 @@ class EndpointLocatorTests(unittest.TestCase):
         endpoint = output["results"][0]["endpoint"]
         self.assertEqual(endpoint["path"], "/profile/image")
         self.assertEqual(endpoint["http_methods"], ["POST"])
+        self.assertIn(
+            {"name": "url", "location": "body", "required": False},
+            endpoint["parameters"],
+        )
+
+    def test_finds_all_express_methods_and_parameter_locations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "server.ts").write_text(
+                textwrap.dedent(
+                    """
+                    app.put('/users/:id', (req, res) => {
+                      return unsafe(req.params.id, req.body.email, req.headers.authorization)
+                    })
+                    """
+                ).lstrip(),
+                encoding="utf-8",
+            )
+
+            output = EndpointLocator().enrich(
+                target,
+                {"results": [{"path": "server.ts", "start": {"line": 2}}]},
+            )
+
+        endpoint = output["results"][0]["endpoint"]
+        self.assertEqual(endpoint["http_methods"], ["PUT"])
+        locations = {(item["name"], item["location"]) for item in endpoint["parameters"]}
+        self.assertEqual(
+            locations,
+            {("id", "path"), ("email", "body"), ("authorization", "header")},
+        )
 
     def test_finds_endpoint_in_juice_shop_stack(self) -> None:
         target = Path(__file__).resolve().parents[1] / "target" / "juice-shop-master"

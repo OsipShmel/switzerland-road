@@ -38,8 +38,9 @@ class _SourceFile:
 class TypeScriptEndpointIndex:
     """строит индекс express-маршрутов для typescript."""
 
+    _all_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"]
     _route_pattern = re.compile(
-        r"\b(?:app|router)\s*\.\s*(get|post|put|patch|delete|head|options|use)\s*\("
+        r"\b(?:app|router)\s*\.\s*(get|post|put|patch|delete|head|options|trace|all|use)\s*\("
     )
     _ignored_parts = {
         "node_modules",
@@ -67,13 +68,16 @@ class TypeScriptEndpointIndex:
         if offset is None:
             return None
 
+        # сначала проверяется встроенный обработчик маршрута
         inline_routes = [route for route in parsed.routes if route.start <= offset <= route.end]
         if inline_routes:
             route = min(inline_routes, key=lambda item: item.end - item.start)
             endpoint = self._endpoint(parsed.path, route, "inline")
-            endpoint["query_parameters"] = self._query_parameters(
-                parsed.text[route.start:route.end]
+            parameters = self._parameters(
+                parsed.text[route.start:route.end], endpoint["path"]
             )
+            endpoint["parameters"] = parameters
+            endpoint["query_parameters"] = self._query_parameter_names(parameters)
             endpoint["locator_confidence"] = 1.0
             endpoint["locator_evidence"] = [
                 "строка sast находится внутри callback маршрута",
@@ -89,13 +93,16 @@ class TypeScriptEndpointIndex:
         if not handlers:
             return None
         handler = min(handlers, key=lambda item: item.end - item.start)
+        # индекс связывает обработчик с импортом и маршрутом
         endpoints = self.routes_by_handler.get((source, handler.name), [])
         if not endpoints:
             return None
         endpoint = dict(endpoints[0])
-        endpoint["query_parameters"] = self._query_parameters(
-            parsed.text[handler.start:handler.end]
+        parameters = self._parameters(
+            parsed.text[handler.start:handler.end], endpoint["path"]
         )
+        endpoint["parameters"] = parameters
+        endpoint["query_parameters"] = self._query_parameter_names(parameters)
         endpoint["locator_confidence"] = 0.95
         endpoint["locator_evidence"] = [
             f"строка sast находится внутри обработчика {handler.name}",
@@ -183,7 +190,11 @@ class TypeScriptEndpointIndex:
         route: _RouteCall,
         handler: str,
     ) -> dict[str, Any]:
-        methods = [] if route.method == "use" else [route.method.upper()]
+        methods = (
+            list(self._all_methods)
+            if route.method in {"use", "all"}
+            else [route.method.upper()]
+        )
         return {
             "framework": "express",
             "path": self._join_paths(
@@ -195,17 +206,96 @@ class TypeScriptEndpointIndex:
             "declaration_file": declaration_file.relative_to(self.target).as_posix(),
             "declaration_line": route.line,
             "query_parameters": [],
+            "parameters": self._path_parameters(route.path),
             "locator_confidence": 0.0,
             "locator_evidence": [],
         }
 
-    @staticmethod
-    def _query_parameters(source: str) -> list[str]:
-        parameters = re.findall(
-            r"\breq\s*(?:\?\.)?\.\s*query\s*(?:\?\.)?\.\s*([A-Za-z_]\w*)",
-            source,
+    @classmethod
+    def _parameters(cls, source: str, path: str) -> list[dict[str, Any]]:
+        parameters = cls._path_parameters(path)
+        locations = {
+            "query": "query",
+            "params": "path",
+            "body": "body",
+            "headers": "header",
+            "cookies": "cookie",
+        }
+        access = re.compile(
+            r"\breq\s*(?:\?\.|\.)\s*(query|params|body|headers|cookies)"
+            r"\s*(?:(?:\?\.|\.)\s*([A-Za-z_]\w*)|\[\s*['\"]([^'\"]+)['\"]\s*\])"
         )
-        return list(dict.fromkeys(parameters))
+        for match in access.finditer(source):
+            cls._add_parameter(
+                parameters,
+                match.group(2) or match.group(3),
+                locations[match.group(1)],
+            )
+
+        # express часто передает части request через деструктуризацию
+        for request_part, location in locations.items():
+            if not re.search(
+                rf"\{{[^}}]*\b{request_part}\b[^}}]*\}}\s*:\s*Request\b",
+                source,
+            ):
+                continue
+            member = re.compile(
+                rf"\b{request_part}\s*(?:(?:\?\.|\.)\s*([A-Za-z_]\w*)|"
+                rf"\[\s*['\"]([^'\"]+)['\"]\s*\])"
+            )
+            for match in member.finditer(source):
+                cls._add_parameter(
+                    parameters,
+                    match.group(1) or match.group(2),
+                    location,
+                )
+
+        destructuring = re.compile(
+            r"\{(?P<names>[^{}]+)\}\s*=\s*req\s*(?:\?\.|\.)\s*"
+            r"(?P<part>query|params|body|headers|cookies)\b"
+        )
+        for match in destructuring.finditer(source):
+            for item in match.group("names").split(","):
+                name = item.split(":", 1)[0].strip()
+                if re.fullmatch(r"[A-Za-z_]\w*", name):
+                    cls._add_parameter(
+                        parameters,
+                        name,
+                        locations[match.group("part")],
+                    )
+
+        for match in re.finditer(r"\breq\s*\.\s*(?:get|header)\s*\(\s*['\"]([^'\"]+)", source):
+            cls._add_parameter(parameters, match.group(1), "header")
+        return parameters
+
+    @staticmethod
+    def _path_parameters(path: str) -> list[dict[str, Any]]:
+        names = re.findall(
+            r":([A-Za-z_]\w*)|\{([A-Za-z_]\w*)\}|<(?:(?:[^:>]+):)?([A-Za-z_]\w*)>",
+            path,
+        )
+        return [
+            {
+                "name": next(name for name in match if name),
+                "location": "path",
+                "required": True,
+            }
+            for match in names
+        ]
+
+    @staticmethod
+    def _add_parameter(
+        parameters: list[dict[str, Any]],
+        name: str,
+        location: str,
+    ) -> None:
+        value = {"name": name, "location": location, "required": location == "path"}
+        if value not in parameters:
+            parameters.append(value)
+
+    @staticmethod
+    def _query_parameter_names(parameters: list[dict[str, Any]]) -> list[str]:
+        return [item["name"] for item in parameters if item["location"] == "query"]
 
     @classmethod
     def _routes(cls, text: str, masked: str) -> list[_RouteCall]:

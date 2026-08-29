@@ -13,7 +13,8 @@ from .typescript_endpoint_locator import TypeScriptEndpointIndex
 class EndpointLocator:
     """ищет маршрут обработчика для sast-находки."""
 
-    _http_decorators = {"get", "post", "put", "patch", "delete", "head", "options"}
+    _all_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"]
+    _http_decorators = {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
     _spring_methods = {
         "GetMapping": "GET",
         "PostMapping": "POST",
@@ -54,6 +55,7 @@ class EndpointLocator:
         if source is None or line is None:
             return None
 
+        # расширение выбирает нужный локатор
         suffix = source.suffix.lower()
         if suffix == ".py":
             return self._locate_python(target, source, line)
@@ -105,6 +107,7 @@ class EndpointLocator:
         except (OSError, SyntaxError, UnicodeDecodeError):
             return None
 
+        # ast ищет ближайший обработчик вокруг строки sast
         handlers = [
             node
             for node in ast.walk(tree)
@@ -116,16 +119,17 @@ class EndpointLocator:
         handler = min(handlers, key=lambda node: (node.end_lineno or node.lineno) - node.lineno)
 
         for decorator in handler.decorator_list:
-            endpoint = self._python_decorator(decorator, handler.name, source, target)
+            endpoint = self._python_decorator(decorator, handler, source, target)
             if endpoint is not None:
                 return endpoint
 
-        return self._locate_django(target, handler.name)
+        parameters = self._python_parameters(handler, "django", "")
+        return self._locate_django(target, handler, parameters)
 
     def _python_decorator(
         self,
         decorator: ast.expr,
-        handler_name: str,
+        handler: ast.FunctionDef | ast.AsyncFunctionDef,
         source: Path,
         target: Path,
     ) -> dict[str, Any] | None:
@@ -142,10 +146,11 @@ class EndpointLocator:
                 "fastapi",
                 path,
                 [short_name.upper()],
-                handler_name,
+                handler.name,
                 source,
                 decorator.lineno,
                 target,
+                self._python_parameters(handler, "fastapi", path),
             )
 
         if short_name in {"route", "api_route"}:
@@ -158,14 +163,21 @@ class EndpointLocator:
                 framework,
                 path,
                 methods,
-                handler_name,
+                handler.name,
                 source,
                 decorator.lineno,
                 target,
+                self._python_parameters(handler, framework, path),
             )
         return None
 
-    def _locate_django(self, target: Path, handler_name: str) -> dict[str, Any] | None:
+    def _locate_django(
+        self,
+        target: Path,
+        handler: ast.FunctionDef | ast.AsyncFunctionDef,
+        parameters: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        handler_name = handler.name
         pattern = re.compile(
             rf"\b(?P<kind>path|re_path)\s*\(\s*['\"](?P<path>[^'\"]+)['\"]\s*,\s*"
             rf"(?:[A-Za-z_]\w*\.)*{re.escape(handler_name)}(?:\.as_view\(\))?\b"
@@ -181,11 +193,15 @@ class EndpointLocator:
                 return self._endpoint(
                     "django",
                     "/" + match.group("path").lstrip("/"),
-                    [],
+                    self._django_methods(handler),
                     handler_name,
                     urls_file,
                     line,
                     target,
+                    self._merge_parameters(
+                        parameters,
+                        self._path_parameters("/" + match.group("path").lstrip("/")),
+                    ),
                 )
         return None
 
@@ -217,15 +233,16 @@ class EndpointLocator:
         annotation_name = mapping.group(1)
         args = mapping.group("args")
         path_match = re.search(r"['\"]([^'\"]+)['\"]", args)
-        if path_match is None:
-            return None
+        # путь метода дополняется путем контроллера
         class_path = self._spring_class_path(lines, method_line)
-        path = self._join_paths(class_path, path_match.group(1))
+        path = self._join_paths(class_path, path_match.group(1) if path_match else "")
         methods = [self._spring_methods[annotation_name]] if annotation_name in self._spring_methods else re.findall(
-            r"RequestMethod\.(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)", args
+            r"RequestMethod\.(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)", args
         )
-        handler_match = re.search(r"([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:throws\s+[^\{]+)?\{?", lines[method_line - 1])
+        declaration = self._spring_method_declaration(lines, method_line)
+        handler_match = re.search(r"([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:throws\s+[^\{]+)?\{?", declaration)
         handler_name = handler_match.group(1) if handler_match else "unknown"
+        parameters = self._spring_parameters(declaration, path)
         return self._endpoint(
             "spring",
             path,
@@ -234,6 +251,7 @@ class EndpointLocator:
             source,
             annotation_line,
             target,
+            parameters,
         )
 
     @staticmethod
@@ -245,6 +263,214 @@ class EndpointLocator:
             if method_pattern.search(lines[line_number - 1]):
                 return line_number
         return None
+
+    @staticmethod
+    def _spring_method_declaration(lines: list[str], method_line: int) -> str:
+        parts: list[str] = []
+        balance = 0
+        for text in lines[method_line - 1:method_line + 30]:
+            parts.append(text.strip())
+            balance += text.count("(") - text.count(")")
+            if balance <= 0 and ("{" in text or ";" in text):
+                break
+        return " ".join(parts)
+
+    @classmethod
+    def _spring_parameters(cls, declaration: str, path: str) -> list[dict[str, Any]]:
+        parameters = cls._path_parameters(path)
+        annotations = {
+            "RequestParam": "query",
+            "PathVariable": "path",
+            "RequestHeader": "header",
+            "CookieValue": "cookie",
+            "RequestBody": "body",
+        }
+        pattern = re.compile(
+            r"@(?P<annotation>RequestParam|PathVariable|RequestHeader|CookieValue|RequestBody)"
+            r"(?:\s*\((?P<args>[^)]*)\))?\s+"
+            r"(?:final\s+)?(?:[\w<>?,.\[\]]+\s+)+(?P<variable>[A-Za-z_]\w*)"
+        )
+        for match in pattern.finditer(declaration):
+            args = match.group("args") or ""
+            explicit_name = re.search(
+                r"(?:\b(?:name|value)\s*=\s*)?['\"]([^'\"]+)['\"]",
+                args,
+            )
+            name = explicit_name.group(1) if explicit_name else match.group("variable")
+            location = annotations[match.group("annotation")]
+            required = location == "path" or (
+                "required = false" not in args and "defaultValue" not in args
+            )
+            cls._add_parameter(parameters, name, location, required)
+        return parameters
+
+    @classmethod
+    def _python_parameters(
+        cls,
+        handler: ast.FunctionDef | ast.AsyncFunctionDef,
+        framework: str,
+        path: str,
+    ) -> list[dict[str, Any]]:
+        parameters = cls._path_parameters(path)
+        if framework == "fastapi":
+            positional = list(handler.args.posonlyargs) + list(handler.args.args)
+            defaults: list[ast.expr | None] = [None] * (
+                len(positional) - len(handler.args.defaults)
+            )
+            defaults.extend(handler.args.defaults)
+            arguments = list(zip(positional, defaults, strict=True))
+            arguments.extend(
+                zip(handler.args.kwonlyargs, handler.args.kw_defaults, strict=True)
+            )
+            path_names = {item["name"] for item in parameters}
+            ignored_types = {"Request", "Response", "BackgroundTasks", "WebSocket"}
+            for argument, default in arguments:
+                annotation = cls._call_name(argument.annotation) if argument.annotation else ""
+                if (
+                    argument.arg in {"self", "cls", "request", "response"}
+                    or annotation in ignored_types
+                ):
+                    continue
+                location = "path" if argument.arg in path_names else "query"
+                if isinstance(default, ast.Call):
+                    marker = cls._call_name(default.func).rsplit(".", 1)[-1].lower()
+                    location = {
+                        "query": "query",
+                        "path": "path",
+                        "body": "body",
+                        "form": "body",
+                        "header": "header",
+                        "cookie": "cookie",
+                    }.get(marker, location)
+                marker_required = isinstance(default, ast.Call) and any(
+                    isinstance(value, ast.Constant) and value.value is Ellipsis
+                    for value in default.args
+                )
+                required = location == "path" or default is None or (
+                    isinstance(default, ast.Constant) and default.value is Ellipsis
+                ) or marker_required
+                cls._add_parameter(parameters, argument.arg, location, required)
+
+        request_locations = {
+            "args": "query",
+            "get": "query",
+            "query_params": "query",
+            "form": "body",
+            "post": "body",
+            "json": "body",
+            "headers": "header",
+            "cookies": "cookie",
+        }
+        for node in ast.walk(handler):
+            if isinstance(node, ast.Call):
+                name = cls._call_name(node.func).lower().split(".")
+                if (
+                    len(name) >= 3
+                    and name[0] == "request"
+                    and name[-1] == "get"
+                    and node.args
+                ):
+                    source_name = name[-2]
+                    parameter_name = cls._constant_string(node.args[0])
+                    if parameter_name and source_name in request_locations:
+                        cls._add_parameter(
+                            parameters,
+                            parameter_name,
+                            request_locations[source_name],
+                            False,
+                        )
+            if isinstance(node, ast.Subscript):
+                source_name = cls._call_name(node.value).lower().split(".")
+                parameter_name = cls._subscript_string(node.slice)
+                if (
+                    parameter_name
+                    and len(source_name) >= 2
+                    and source_name[0] == "request"
+                    and source_name[-1] in request_locations
+                ):
+                    cls._add_parameter(
+                        parameters,
+                        parameter_name,
+                        request_locations[source_name[-1]],
+                        True,
+                    )
+        return parameters
+
+    @classmethod
+    def _django_methods(
+        cls,
+        handler: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> list[str]:
+        for decorator in handler.decorator_list:
+            name = cls._call_name(
+                decorator.func if isinstance(decorator, ast.Call) else decorator
+            )
+            short_name = name.rsplit(".", 1)[-1]
+            if short_name.startswith("require_") and short_name != "require_http_methods":
+                method = short_name.removeprefix("require_").upper()
+                if method in cls._all_methods:
+                    return [method]
+            if short_name == "require_http_methods" and isinstance(decorator, ast.Call):
+                if decorator.args and isinstance(
+                    decorator.args[0], (ast.List, ast.Tuple, ast.Set)
+                ):
+                    return [
+                        str(item.value).upper()
+                        for item in decorator.args[0].elts
+                        if isinstance(item, ast.Constant) and isinstance(item.value, str)
+                    ]
+        return list(cls._all_methods)
+
+    @staticmethod
+    def _constant_string(node: ast.expr) -> str | None:
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        return None
+
+    @classmethod
+    def _subscript_string(cls, node: ast.expr) -> str | None:
+        return cls._constant_string(node)
+
+    @staticmethod
+    def _path_parameters(path: str) -> list[dict[str, Any]]:
+        matches = re.findall(
+            r"\{([A-Za-z_]\w*)\}|<(?:(?:[^:>]+):)?([A-Za-z_]\w*)>|:([A-Za-z_]\w*)",
+            path,
+        )
+        return [
+            {
+                "name": next(name for name in match if name),
+                "location": "path",
+                "required": True,
+            }
+            for match in matches
+        ]
+
+    @staticmethod
+    def _add_parameter(
+        parameters: list[dict[str, Any]],
+        name: str,
+        location: str,
+        required: bool,
+    ) -> None:
+        if not any(
+            item["name"] == name and item["location"] == location
+            for item in parameters
+        ):
+            parameters.append(
+                {"name": name, "location": location, "required": required}
+            )
+
+    @staticmethod
+    def _merge_parameters(
+        first: list[dict[str, Any]],
+        second: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        merged = list(first)
+        for item in second:
+            if item not in merged:
+                merged.append(item)
+        return merged
 
     def _spring_class_path(self, lines: list[str], method_line: int) -> str:
         for line_number in range(method_line - 1, 0, -1):
@@ -321,7 +547,9 @@ class EndpointLocator:
         source: Path,
         line: int,
         target: Path,
+        parameters: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
+        parameters = parameters or []
         return {
             "framework": framework,
             "path": path,
@@ -329,7 +557,10 @@ class EndpointLocator:
             "handler": handler,
             "declaration_file": source.relative_to(target).as_posix(),
             "declaration_line": line,
-            "query_parameters": [],
+            "query_parameters": [
+                item["name"] for item in parameters if item["location"] == "query"
+            ],
+            "parameters": parameters,
             "locator_confidence": 0.9,
             "locator_evidence": [
                 f"строка sast находится внутри обработчика {handler}",
