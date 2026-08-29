@@ -1,4 +1,3 @@
-# sandboxd/api/agent_gateway/state.py
 from __future__ import annotations
 
 import json
