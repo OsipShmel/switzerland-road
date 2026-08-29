@@ -25,6 +25,8 @@ class VulnerabilityAlreadyChecked(SandboxdApiError):
 class InvalidRequest(SandboxdApiError):
     code = "INVALID_REQUEST"
 
+class NoUncheckedVulnerabilities(SandboxdApiError):
+    code = "NO_UNCHECKED_VULNERABILITIES"
 
 # --- submit_check_result ---
 class NoActiveSession(SandboxdApiError):
