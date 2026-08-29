@@ -92,6 +92,47 @@ class ZapDastScanner:
         )
         return DastScanResult(step, target_url, confirmed=confirmed)
 
+    def scan_standalone(self, base_url: str) -> dict[str, Any]:
+        """запускает полный zap без связи с sast."""
+        self._validate_base_url(base_url)
+        with tempfile.TemporaryDirectory(prefix="orchestrator-zap-") as directory:
+            workdir = Path(directory)
+            # zap пишет отчет от пользователя контейнера
+            workdir.chmod(0o777)
+            report = workdir / "report.json"
+            command = [
+                "docker",
+                "run",
+                "--rm",
+                "--pull=never",
+                "--network",
+                self.docker_network,
+                "--volume",
+                f"{workdir}:/zap/wrk:rw",
+                self.image,
+                "zap-full-scan.py",
+                "-t",
+                base_url,
+                "-J",
+                "report.json",
+                "-I",
+            ]
+            process = self._run_command(command, "ZAP scan timed out")
+            if not report.is_file():
+                details = (
+                    process.stderr.strip()
+                    or process.stdout.strip()
+                    or "нет отчета"
+                )
+                raise PipelineError(f"ZAP failed: {details}")
+            try:
+                parsed = json.loads(report.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise PipelineError("ZAP returned invalid JSON report") from exc
+            if not isinstance(parsed, dict):
+                raise PipelineError("ZAP report must be a JSON object")
+            return parsed
+
     def _run_zap(
         self,
         specification: dict[str, Any],
@@ -293,6 +334,12 @@ class ZapDastScanner:
             (base.scheme, base.netloc, concrete_path, urlencode(query), "")
         )
         return target_url, None
+
+    @staticmethod
+    def _validate_base_url(base_url: str) -> None:
+        parsed = urlsplit(base_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise PipelineError("dast base URL must use http or https")
 
     @classmethod
     def _relevant_alerts(

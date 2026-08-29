@@ -38,16 +38,11 @@ class EndpointParameter(BaseModel):
 class EndpointReference(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    framework: str
     path: str
     http_methods: list[str] = Field(default_factory=list)
-    handler: str
-    declaration_file: str
-    declaration_line: PositiveInt
     query_parameters: list[str] = Field(default_factory=list)
     parameters: list[EndpointParameter] = Field(default_factory=list)
-    locator_confidence: float = Field(default=0, ge=0, le=1)
-    locator_evidence: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
 
 
 class SastBlock(BaseModel):

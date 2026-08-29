@@ -16,7 +16,7 @@ class CLITests(unittest.TestCase):
             output = target / "result.json"
 
             with patch(
-                "orchestrator.cli.SemgrepScanner.scan",
+                "orchestrator.pipeline_runner.SemgrepScanner.scan",
                 return_value={"results": []},
             ) as scan:
                 main(
@@ -31,14 +31,18 @@ class CLITests(unittest.TestCase):
             scan.assert_called_once_with(target.resolve())
             self.assertTrue(output.is_file())
 
-    def test_disable_correlation_does_not_require_zap_network(self) -> None:
+    def test_disable_correlation_writes_separate_dast_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             output = target / "result.json"
+            logs = target / "logs"
             with patch(
-                "orchestrator.cli.SemgrepScanner.scan",
+                "orchestrator.pipeline_runner.SemgrepScanner.scan",
                 return_value={"results": []},
-            ):
+            ), patch(
+                "orchestrator.pipeline_runner.ZapDastScanner.scan_standalone",
+                return_value={"site": []},
+            ) as standalone_scan:
                 main(
                     [
                         "--target-dir",
@@ -47,14 +51,22 @@ class CLITests(unittest.TestCase):
                         str(output),
                         "--dast-base-url",
                         "http://target:3000",
+                        "--zap-network",
+                        "pentest_lab",
                         "--disable-correlation",
+                        "--logs-dir",
+                        str(logs),
                     ]
                 )
 
-            report = json.loads(output.read_text(encoding="utf-8"))
+            records = json.loads(output.read_text(encoding="utf-8"))
+            dast_report = json.loads(
+                (logs / "dast-report.json").read_text(encoding="utf-8")
+            )
 
-        self.assertFalse(report["locator"]["enabled"])
-        self.assertEqual(report["dast"]["executed"], 0)
+        self.assertEqual(records, [])
+        self.assertEqual(dast_report, {"site": []})
+        standalone_scan.assert_called_once_with("http://target:3000")
 
 
 if __name__ == "__main__":

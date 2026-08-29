@@ -33,7 +33,7 @@ class VLSBuilder:
         severity = extra.get("severity")
         fingerprint = extra.get("fingerprint")
         endpoint_data = self._mapping(finding.get("endpoint"))
-        endpoint = EndpointReference.model_validate(endpoint_data) if endpoint_data else None
+        endpoint = self._build_endpoint(endpoint_data) if endpoint_data else None
         return SastBlock(
             rule_id=rule_id,
             file_path=str(finding.get("path") or ""),
@@ -45,6 +45,19 @@ class VLSBuilder:
             cwe=self._string_list(metadata.get("cwe")),
             fingerprint=str(fingerprint) if fingerprint is not None else None,
             endpoint=endpoint,
+        )
+
+    def _build_endpoint(
+        self,
+        endpoint: Mapping[str, Any],
+    ) -> EndpointReference:
+        # в vls остаются только данные для dast и доказательства поиска
+        return EndpointReference(
+            path=str(endpoint.get("path") or ""),
+            http_methods=self._string_list(endpoint.get("http_methods")),
+            query_parameters=self._string_list(endpoint.get("query_parameters")),
+            parameters=endpoint.get("parameters") or [],
+            evidence=self._string_list(endpoint.get("locator_evidence")),
         )
 
     def _build_record(self, sast: SastBlock) -> dict[str, Any]:

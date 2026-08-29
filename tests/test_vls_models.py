@@ -11,6 +11,7 @@ from vls import (
     PentestVerificationStep,
     SastBlock,
     VLS,
+    VlsRegistry,
 )
 
 
@@ -156,17 +157,25 @@ class SastBlockTests(unittest.TestCase):
             file_path="src/app.py",
             line=10,
             endpoint=EndpointReference(
-                framework="fastapi",
                 path="/users",
                 http_methods=["POST"],
-                handler="create_user",
-                declaration_file="src/app.py",
-                declaration_line=7,
-                locator_confidence=0.9,
+                evidence=["маршрут найден над обработчиком"],
             ),
         )
 
         self.assertEqual(sast.endpoint.path, "/users")
+        self.assertEqual(sast.endpoint.evidence, ["маршрут найден над обработчиком"])
+
+
+class VlsRegistryTests(unittest.TestCase):
+    def test_records_are_validated_and_serialized(self) -> None:
+        registry = VlsRegistry.from_records(
+            [{"id": "finding-id", "title": "sql injection"}]
+        )
+
+        self.assertEqual(len(registry), 1)
+        self.assertIsInstance(registry["finding-id"], VLS)
+        self.assertEqual(registry.to_records()[0]["status"], "unchecked")
 
 
 if __name__ == "__main__":

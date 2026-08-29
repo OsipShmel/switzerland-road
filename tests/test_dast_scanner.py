@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import subprocess
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from orchestrator.dast_scanner import ZapDastScanner
@@ -193,6 +196,26 @@ class ZapDastScannerTests(unittest.TestCase):
         )
 
         self.assertEqual(matches, [])
+
+    def test_standalone_scan_returns_raw_zap_report(self) -> None:
+        commands = []
+
+        def run_command(command, _message):
+            commands.append(command)
+            volume = command[command.index("--volume") + 1]
+            workdir = Path(volume.split(":/zap/wrk:rw", maxsplit=1)[0])
+            (workdir / "report.json").write_text(
+                json.dumps(self.report),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(self.scanner, "_run_command", side_effect=run_command):
+            result = self.scanner.scan_standalone("http://target:3000")
+
+        self.assertEqual(result, self.report)
+        self.assertIn("zap-full-scan.py", commands[0])
+        self.assertIn("pentest_lab", commands[0])
 
 
 if __name__ == "__main__":

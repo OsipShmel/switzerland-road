@@ -10,8 +10,13 @@ from unittest.mock import Mock, patch
 from data_enricher import VLSBuilder
 from orchestrator.dast_scanner import DastScanResult
 from orchestrator.endpoint_locator import EndpointLocator
-from orchestrator.pipeline_runner import PipelineError, SecurityPipeline, SemgrepScanner
-from vls import DastReport, DastVerificationStep
+from orchestrator.pipeline_runner import (
+    PipelineError,
+    SecurityPipeline,
+    SemgrepScanner,
+    run_pipeline,
+)
+from vls import DastReport, DastVerificationStep, VlsRegistry
 
 
 class SemgrepScannerTests(unittest.TestCase):
@@ -59,14 +64,24 @@ class SemgrepScannerTests(unittest.TestCase):
 
 
 class SecurityPipelineTests(unittest.TestCase):
-    def test_pipeline_returns_vulnerability_list(self) -> None:
+    def test_public_method_returns_vls_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "orchestrator.pipeline_runner.SemgrepScanner.scan",
+            return_value={"results": []},
+        ):
+            result = run_pipeline(directory)
+
+        self.assertIsInstance(result, VlsRegistry)
+
+    def test_pipeline_returns_vls_registry(self) -> None:
         scanner = Mock()
         scanner.scan.return_value = {"results": []}
         pipeline = SecurityPipeline(scanner, VLSBuilder())
 
         result = pipeline.run(".")
 
-        self.assertEqual(result["vulnerabilities"], [])
+        self.assertIsInstance(result, VlsRegistry)
+        self.assertEqual(result.all(), [])
         scanner.scan.assert_called_once_with(Path.cwd().resolve())
 
     def test_pipeline_can_disable_correlation(self) -> None:
@@ -90,20 +105,28 @@ class SecurityPipelineTests(unittest.TestCase):
             dast_scanner=dast,
         )
 
-        result = pipeline.run(
-            ".",
-            "http://target:8000",
-            correlation_enabled=False,
-        )
+        dast.scan_standalone.return_value = {"site": []}
+        with tempfile.TemporaryDirectory() as directory:
+            logs_dir = Path(directory) / "logs"
+            result = pipeline.run(
+                ".",
+                "http://target:8000",
+                correlation_enabled=False,
+                logs_dir=logs_dir,
+            )
+            report = (logs_dir / "dast-report.json").read_text(encoding="utf-8")
 
         locator.enrich.assert_not_called()
         dast.scan.assert_not_called()
-        self.assertFalse(result["locator"]["enabled"])
-        self.assertFalse(result["dast"]["correlation_enabled"])
-        self.assertIsNone(result["vulnerabilities"][0]["sast"]["endpoint"])
-        dast_step = result["vulnerabilities"][0]["verification_history"]["dast"]
-        self.assertFalse(dast_step["run_executed"])
-        self.assertEqual(dast_step["verdict_output"], "not_tested")
+        dast.scan_standalone.assert_called_once_with("http://target:8000")
+        vulnerability = result.all()[0]
+        self.assertIsNone(vulnerability.sast.endpoint)
+        self.assertFalse(vulnerability.verification_history.dast.run_executed)
+        self.assertEqual(
+            vulnerability.verification_history.dast.verdict_output,
+            "not_tested",
+        )
+        self.assertIn('"site": []', report)
 
     def test_pipeline_adds_endpoint_to_vls(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -139,11 +162,10 @@ class SecurityPipelineTests(unittest.TestCase):
 
             result = SecurityPipeline(scanner, VLSBuilder()).run(target)
 
-        endpoint = result["vulnerabilities"][0]["sast"]["endpoint"]
-        self.assertEqual(endpoint["framework"], "fastapi")
-        self.assertEqual(endpoint["path"], "/users")
-        self.assertEqual(endpoint["http_methods"], ["POST"])
-        self.assertEqual(endpoint["handler"], "create_user")
+        endpoint = result.all()[0].sast.endpoint
+        self.assertEqual(endpoint.path, "/users")
+        self.assertEqual(endpoint.http_methods, ["POST"])
+        self.assertTrue(endpoint.evidence)
 
     def test_pipeline_applies_confirmed_dast_result(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -193,18 +215,15 @@ class SecurityPipelineTests(unittest.TestCase):
                 dast_scanner=dast,
             ).run(target, "http://target:8000")
 
-        vulnerability = result["vulnerabilities"][0]
-        self.assertEqual(vulnerability["status"], "checked")
-        self.assertEqual(vulnerability["confirmed_by"], "dast")
-        self.assertTrue(
-            vulnerability["verification_history"]["dast"]["run_executed"]
-        )
+        vulnerability = result.all()[0]
+        self.assertEqual(vulnerability.status, "checked")
+        self.assertEqual(vulnerability.confirmed_by, "dast")
+        self.assertTrue(vulnerability.verification_history.dast.run_executed)
         self.assertEqual(
-            vulnerability["verification_history"]["dast"]["verdict_output"],
+            vulnerability.verification_history.dast.verdict_output,
             "confirmed",
         )
-        self.assertEqual(result["dast"]["executed"], 1)
-        self.assertEqual(result["locator"]["coverage"], 1.0)
+        self.assertEqual(vulnerability.sast.endpoint.path, "/search")
 
     def test_pipeline_keeps_unconfirmed_dast_step_in_vls(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -245,13 +264,11 @@ class SecurityPipelineTests(unittest.TestCase):
                 dast_scanner=dast,
             ).run(target, "http://target:8000")
 
-        vulnerability = result["vulnerabilities"][0]
-        self.assertEqual(vulnerability["status"], "unchecked")
-        self.assertTrue(
-            vulnerability["verification_history"]["dast"]["run_executed"]
-        )
+        vulnerability = result.all()[0]
+        self.assertEqual(vulnerability.status, "unchecked")
+        self.assertTrue(vulnerability.verification_history.dast.run_executed)
         self.assertEqual(
-            vulnerability["verification_history"]["dast"]["verdict_output"],
+            vulnerability.verification_history.dast.verdict_output,
             "unconfirmed",
         )
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from data_enricher import VLSBuilder
-from vls import VLS
+from vls import VlsRegistry
 
 from .dast_scanner import ZapDastScanner
 from .endpoint_locator import EndpointLocator
@@ -67,7 +67,7 @@ class SemgrepScanner:
 
 
 class SecurityPipeline:
-    """управляет sast-пайплайном."""
+    """собирает результаты проверок в vls registry."""
 
     def __init__(
         self,
@@ -86,108 +86,90 @@ class SecurityPipeline:
         target_dir: str | Path,
         dast_base_url: str | None = None,
         correlation_enabled: bool = True,
-    ) -> dict[str, Any]:
+        logs_dir: str | Path = "logs",
+    ) -> VlsRegistry:
         target = Path(target_dir).expanduser().resolve()
         semgrep_output = self.scanner.scan(target)
-        # без корреляции исходный sast сразу идет в vls
+        # локатор нужен только для связи sast и dast
         enriched_output = (
             self.endpoint_locator.enrich(target, semgrep_output)
             if correlation_enabled
             else semgrep_output
         )
-        vulnerabilities = self.builder.build(enriched_output)
-        locator_summary = self._locator_summary(vulnerabilities, correlation_enabled)
-        # точечный dast зависит от найденного endpoint
-        dast_summary = (
-            self._run_dast(vulnerabilities, dast_base_url)
-            if correlation_enabled
-            else {
-                "requested": dast_base_url is not None,
-                "correlation_enabled": False,
-                "executed": 0,
-                "skipped": [],
-            }
-        )
-        return {
-            "target_dir": str(target),
-            "locator": locator_summary,
-            "dast": dast_summary,
-            "vulnerabilities": vulnerabilities,
-        }
+        registry = VlsRegistry.from_records(self.builder.build(enriched_output))
 
-    @staticmethod
-    def _locator_summary(
-        vulnerabilities: list[dict[str, Any]],
-        enabled: bool = True,
-    ) -> dict[str, Any]:
-        matches = []
-        for vulnerability in vulnerabilities:
-            endpoint = (vulnerability.get("sast") or {}).get("endpoint")
-            if not endpoint:
-                continue
-            matches.append(
-                {
-                    "vulnerability_id": vulnerability["id"],
-                    "path": endpoint["path"],
-                    "http_methods": endpoint["http_methods"],
-                    "confidence": endpoint["locator_confidence"],
-                    "evidence": endpoint["locator_evidence"],
-                }
-            )
-        total = len(vulnerabilities)
-        average = (
-            sum(match["confidence"] for match in matches) / len(matches)
-            if matches
-            else 0.0
-        )
-        return {
-            "enabled": enabled,
-            "total_findings": total,
-            "matched_findings": len(matches),
-            "coverage": len(matches) / total if total else 0.0,
-            "average_confidence": average,
-            "matches": matches,
-        }
-
-    def _run_dast(
-        self,
-        vulnerabilities: list[dict[str, Any]],
-        base_url: str | None,
-    ) -> dict[str, Any]:
-        requested = base_url is not None
-        if not requested:
-            return {
-                "requested": False,
-                "correlation_enabled": True,
-                "executed": 0,
-                "skipped": [],
-            }
+        if dast_base_url is None:
+            return registry
         if self.dast_scanner is None:
             raise PipelineError("dast base URL задан, но ZAP scanner не настроен")
 
-        executed = 0
-        skipped = []
-        for index, vulnerability in enumerate(vulnerabilities):
-            result = self.dast_scanner.scan(vulnerability, base_url)
-            if result.step is None:
-                skipped.append(
-                    {
-                        "vulnerability_id": vulnerability["id"],
-                        "target_url": result.target_url,
-                        "reason": result.skip_reason,
-                    }
-                )
-                continue
+        if not correlation_enabled:
+            # несвязанный dast сохраняется отдельно и не меняет vls
+            report = self.dast_scanner.scan_standalone(dast_base_url)
+            self._write_dast_log(report, logs_dir)
+            return registry
 
-            executed += 1
-            # vls сам применяет результат выполненного dast-этапа
-            record = VLS.model_validate(vulnerability).with_dast_verification(
-                result.step
+        self._merge_dast(registry, dast_base_url)
+        return registry
+
+    def _merge_dast(
+        self,
+        registry: VlsRegistry,
+        base_url: str,
+    ) -> None:
+        for vulnerability in registry.all():
+            result = self.dast_scanner.scan(
+                vulnerability.model_dump(mode="json"),
+                base_url,
             )
-            vulnerabilities[index] = record.model_dump(mode="json")
-        return {
-            "requested": True,
-            "correlation_enabled": True,
-            "executed": executed,
-            "skipped": skipped,
-        }
+            if result.step is None:
+                continue
+            # upsert сохраняет sast и добавляет связанную dast-проверку
+            registry.upsert(vulnerability.with_dast_verification(result.step))
+
+    @staticmethod
+    def _write_dast_log(report: dict[str, Any], logs_dir: str | Path) -> Path:
+        directory = Path(logs_dir).expanduser().resolve()
+        directory.mkdir(parents=True, exist_ok=True)
+        output = directory / "dast-report.json"
+        output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return output
+
+
+def run_pipeline(
+    target_dir: str | Path,
+    *,
+    dast_base_url: str | None = None,
+    correlation_enabled: bool = True,
+    logs_dir: str | Path = "logs",
+    semgrep_config: str = "p/sql-injection",
+    semgrep_timeout: float = 300,
+    zap_network: str | None = None,
+    zap_image: str = "ghcr.io/zaproxy/zaproxy:stable",
+    zap_timeout: float = 900,
+) -> VlsRegistry:
+    """запускает весь пайплайн и возвращает готовый registry."""
+    dast_scanner = None
+    if dast_base_url is not None:
+        if not zap_network:
+            raise PipelineError("zap network требуется при запуске dast")
+        dast_scanner = ZapDastScanner(
+            docker_network=zap_network,
+            image=zap_image,
+            timeout_seconds=zap_timeout,
+        )
+
+    pipeline = SecurityPipeline(
+        scanner=SemgrepScanner(semgrep_config, semgrep_timeout),
+        builder=VLSBuilder(),
+        dast_scanner=dast_scanner,
+    )
+    return pipeline.run(
+        target_dir,
+        dast_base_url=dast_base_url,
+        correlation_enabled=correlation_enabled,
+        logs_dir=logs_dir,
+    )
