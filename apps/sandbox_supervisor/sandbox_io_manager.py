@@ -13,6 +13,7 @@ class SandboxIOManager:
     def __init__(self, port: str) -> None:
         
         self._sandbox_target_url = f"http://sandboxd:{port}/target_zip"
+        self._sandbox_vls_regisry_rec = f"http://sandboxd:{port}/log_vls_registry"
         self._sandbox_vls_reristry_up = f"http://sandboxd:{port}/init_vls_regisry"
         self._sandbox_instruction_url = f"http://sandboxd:{port}/get_instruction"
                 
@@ -52,7 +53,7 @@ class SandboxIOManager:
     
     async def send_vls_regisrtry(self, vlsreg: VlsRegistry) -> bool:
         
-        vls_adapter = TypeAdapter(vlsreg)
+        vls_adapter = TypeAdapter(VlsRegistry)
         vls_json = vls_adapter.dump_python(vlsreg, mode="json")
             
         async with httpx.AsyncClient() as cli:
@@ -67,4 +68,22 @@ class SandboxIOManager:
             except httpx.RequestError as e:
                 print(f"transport reqest error:  {e}"}
                 return False
-    
+
+     async def receive_vls_regisrtry(self) -> VlsRegistry:
+        
+        vls_adapter = TypeAdapter(VlsRegistry)
+        vls_json = vls_adapter.dump_python(vlsreg, mode="json")
+            
+        async with httpx.AsyncClient() as cli:
+            try:
+                response = await cli.post(self._sandbox_vls_reristry_rec, timeout=60.0)
+                vlsreg = vls_adapter.validate_python(response.json())
+                return vlsreg
+            
+            except httpx.HTTPStatusError as e:
+                print(f"HTTP error: {e.response.text}"}
+                return False
+
+            except httpx.RequestError as e:
+                print(f"transport reqest error:  {e}"}
+                return False
