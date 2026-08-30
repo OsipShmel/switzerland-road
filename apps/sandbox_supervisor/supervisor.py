@@ -6,11 +6,16 @@ import asyncio
 import httpx
 import aiofiles.os
 from zipfile import ZipFile, ZIP_DEFLATED
-import docker
-from docker.errors import NotFound
+from fastapi import FastAPI
+#import docker
+#from docker.errors import NotFound
+from pydantic import TypeAdapter
 
-from VLSManager import VLSManager
+#from vls import VlsRegistry
+#from VLSManager import VLSManager
 from sandbox_io_manager import SandboxIOManager
+
+app = FastAPI()
 
 class Supervisor:
 
@@ -19,18 +24,18 @@ class Supervisor:
     
     def __init__(self, client = httpx.AsyncClient) -> None:
         self._vlsmanager = VLSManager()
-        self._iomanager = SandboxIOManager(self.PORT, self._client)
         self._client = client
+        self._iomanager = SandboxIOManager(self.PORT, self._client)
         self._current_task = ""
         
     async def start(self, target_link: str, vlsreg: VlsRegistry) -> None:
         await self._setup_target(target_link)
         print("starting vls transmission")
         retries = 0
-        while not await self._iomanager.send_vls_regisry(vlsreg):
+        while not await self._iomanager.send_vls_registry(vlsreg):
             retries += 1
             print("retrying vls transmission..")
-            if retries >= self.MAX_RETIES:
+            if retries >= self.MAX_RETRIES:
                 print("failed to transfer")
                 return
             await asyncio.sleep(5)
@@ -70,7 +75,7 @@ class Supervisor:
             if retries >= self.MAX_RETIES:
                 print("failed to transfer")
                 return
-            await httpx.aio.sleep(5)
+            await asyncio.sleep(5)
 
         print("Target successfully sent")
         return None
@@ -83,5 +88,18 @@ class Supervisor:
     async def _task_check(self, port: int) -> None:
         self._current_task = await self._iomanager.receive_instruction()
         return None
-        
+
+@app.post("/log-vls")    
+async def receive_vls_registry(vlsreg: VlsRegistry) -> VlsRegistry | None:
+    vls_adapter = TypeAdapter(VlsRegistry)
+    try:
+        return vls_adapter.validate_python(vlsreg.json())
+    except httpx.HTTPStatusError as e:
+        print(f"HTTP error: {e.response.text}")
+        return None
+    except httpx.RequestError as e:
+        print(f"transport reqest error:  {e}")
+        return None
+    
+    
         
