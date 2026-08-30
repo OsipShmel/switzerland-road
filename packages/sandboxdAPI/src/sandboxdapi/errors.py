@@ -44,3 +44,32 @@ class FlagNotConfirmed(SandboxdApiError):
 # --- finish_check_session ---
 class ResultNotSubmitted(SandboxdApiError):
     code = "RESULT_NOT_SUBMITTED"
+
+
+
+_ERROR_REGISTRY: dict[str, type[SandboxdApiError]] = {
+    cls.code: cls
+    for cls in [
+        SessionAlreadyActive, VulnerabilityNotFound, VulnerabilityAlreadyChecked,
+        InvalidRequest, NoUncheckedVulnerabilities, NoActiveSession,
+        InvalidVlsTransition, FlagNotConfirmed, ResultNotSubmitted,
+    ]
+}
+
+
+def raise_for_sandboxd_error(response) -> None:
+
+    if response.is_success:
+        return
+    try:
+        body = response.json()
+        code = body.get("error")
+        detail = body.get("detail")
+    except Exception:
+        response.raise_for_status()
+        return
+
+    error_cls = _ERROR_REGISTRY.get(code)
+    if error_cls is not None:
+        raise error_cls(detail)
+    response.raise_for_status()

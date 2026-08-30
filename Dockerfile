@@ -2,6 +2,8 @@ FROM docker:dind
 
 # RUN apk add --no-cache python3 bash git curl
 RUN apk add --no-cache python3 bash git curl socat
+#TODO!
+RUN apk add --no-cache python3 bash git curl socat iproute2
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 

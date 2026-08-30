@@ -61,5 +61,21 @@ socat TCP-LISTEN:11434,fork,reuseaddr TCP:${MAC_HOST_IP}:11434 &
 
 iptables -t nat -A PREROUTING -p tcp --dport 11434 -j REDIRECT --to-ports 11434
 
+# Способ 1: Если нужно замедлить весь трафик DinD-контейнера наружу (Самый надежный)
+echo "[sandboxd] applying 100ms delay to eth0..."
+tc qdisc add dev eth0 root netem delay 100ms
+
+# Способ 2 (Альтернативный): Если нужно замедлить только дефолтную Docker-сеть внутри DinD
+# echo "[sandboxd] applying 100ms delay to docker0..."
+# tc qdisc add dev docker0 root netem delay 100ms
+
+# Способ 3 (Исправление вашей логики): Если вы всё же ищете br-, добавляем '|| true'
+# TARGET_BRIDGE=$(ip route show | grep "172.19.0" | awk '{print $3}' | grep br- || true)
+# if [ -n "$TARGET_BRIDGE" ]; then
+#     echo "[sandboxd] applying 100ms delay to bridge: $TARGET_BRIDGE"
+#     tc qdisc add dev "$TARGET_BRIDGE" root netem delay 100ms
+# else
+#     echo "[sandboxd] WARNING: Target bridge network not found, skipping tc configuration"
+# fi
 
 exec "$@"
