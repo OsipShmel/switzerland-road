@@ -1,8 +1,6 @@
 import asyncio
 import sys
-
-from supevisor import *
-# это плохо, но работает для тестов
+from supervisor import Supervisor
 
 class SupervisorShell:
     def __init__(self, supervisor: Supervisor, prompt: str = "supervisor-sh> "):
@@ -15,9 +13,8 @@ class SupervisorShell:
         return await loop.run_in_executor(None, input, self.prompt)
 
     def _print_help(self) -> None:
-        """Вывод справки по командам."""
         print("\nДоступные команды:")
-        print(" start <target_link> - Запустить процесс по ссылке без ссылки запустит уже существующий target")
+        print(" start <target_link> - Запустить процесс по ссылке")
         print(" help - Показать это сообщение")
         print(" exit - Завершить работу шелла\n")
 
@@ -42,7 +39,7 @@ class SupervisorShell:
                 return
             
             print(f"Отправка команды start для: {args}...")
-            asyncio.create_task(self.supervisor.start(args))
+            asyncio.create_task(self.supervisor.start(target_link=args, vlsreg=None))
 
         else:
             print(f"Неизвестная команда: '{command}'. Введите 'help' для справки.")
@@ -56,20 +53,10 @@ class SupervisorShell:
             try:
                 user_input = await self._read_input()
                 await self._handle_command(user_input)
-                
             except (KeyboardInterrupt, EOFError):
                 print("\nСессия завершена пользователем.")
                 self._running = False
-                
             except Exception as e:
                 print(f"Произошла ошибка в шелле: {e}", file=sys.stderr)
 
 
-#затычка для запуска
-async def main():
-    supervisor = Supervisor()
-    shell = SupervisorShell(supervisor=supervisor)
-    await shell.run()
-
-if __name__ == "__main__":
-    asyncio.run(main())
