@@ -36,6 +36,7 @@ services:
       SANDBOXD_TARGET_NETWORK: "${SANDBOXD_TARGET_NETWORK:-sandbox-target-net}"
       SANDBOXD_CONTROL_NETWORK: "${SANDBOXD_CONTROL_NETWORK:-sandbox-control-net}"
       SANDBOXD_EGRESS_NETWORK: "${SANDBOXD_EGRESS_NETWORK:-sandbox-egress-net}"
+      SANDBOXD_UPLINK_NETWORK: "${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}"
 
       # ----------------------------------------------------------------
       # Ports
@@ -52,11 +53,11 @@ services:
       SANDBOXD_LLM_BRIDGE: "${SANDBOXD_LLM_BRIDGE:-1}"
       SANDBOXD_EGRESS_DELAY_MS: "${SANDBOXD_EGRESS_DELAY_MS:-100}"
 
-      LLM_UPSTREAM_HOST: "${LLM_UPSTREAM_HOST:-host.docker.internal}"
-      LLM_UPSTREAM_PORT: "${LLM_UPSTREAM_PORT:-11435}"
-
-      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11435}"
-      OLLAMA_MODEL: "${OLLAMA_MODEL:-gemma4-26b-think:latest}"
+      OPENAI_UPSTREAM_HOST: "${OPENAI_UPSTREAM_HOST:-deepcode.ci.nsu.ru}"
+      OPENAI_UPSTREAM_PORT: "${OPENAI_UPSTREAM_PORT:-443}"
+      OPENAI_UPSTREAM_PATH: "${OPENAI_UPSTREAM_PATH:-/api}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-Qwen3.8-27B}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-key}"
 
       # ----------------------------------------------------------------
       # Hash excludes

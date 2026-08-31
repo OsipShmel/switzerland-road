@@ -54,7 +54,26 @@ class SandboxShell(cmd.Cmd):
             internal_networks=(settings.target_network,),
         )
 
-    def _agent_manifest(self) -> NodeManifest:
+    def _gateway_manifest(self) -> NodeManifest:
+        settings.gateway_logs_dir.mkdir(parents=True, exist_ok=True)
+        return NodeManifest.create_stable(
+            source_path=settings.project_root,
+            target_port=settings.gateway_port,
+            health_path="/health",
+            dockerfile=settings.gateway_dockerfile,
+            internal_networks=(settings.control_network,),
+            hash_excludes=COMMON_HASH_EXCLUDES,
+            extra_options={
+                "volumes": {
+                    str(settings.gateway_logs_dir): {
+                        "bind": "/logs",
+                        "mode": "rw",
+                    }
+                }
+            },
+        )
+
+    def _openai_agent_manifest(self) -> NodeManifest:
         return NodeManifest.create_disposable(
             source_path=settings.project_root,
             dockerfile=settings.agent_dockerfile,
@@ -65,16 +84,15 @@ class SandboxShell(cmd.Cmd):
                 settings.target_network,
                 settings.egress_network,
             ),
-            external_networks=(settings.egress_network,),
             hash_excludes=COMMON_HASH_EXCLUDES,
             env={
                 "SANDBOXD_GATEWAY_URL": f"http://gateway:{settings.gateway_port}",
                 "TARGET_URL": "http://target:3000",
-                "OLLAMA_BASE_URL": settings.ollama_base_url,
-                "OLLAMA_MODEL": settings.ollama_model,
+                "OPENAI_BASE_URL": settings.openai_base_url,
+                "OPENAI_MODEL": settings.openai_model,
+                "OPENAI_API_KEY": "egress-managed",
             },
         )
-
 
     def _gateway_manifest(self) -> NodeManifest:
         settings.gateway_logs_dir.mkdir(parents=True, exist_ok=True)
@@ -96,18 +114,21 @@ class SandboxShell(cmd.Cmd):
         )
 
     def _llm_egress_manifest(self) -> NodeManifest:
-        """DEPRESSED"""
+        """UNDEPRESSED.. ? for openai providers.
+        Provider-only egress gateway for the sandbox LLM connection."""
         return NodeManifest.create_stable(
             source_path=settings.project_root,
             dockerfile=settings.llm_egress_dockerfile,
             target_port=settings.llm_egress_port,
             health_check_type="tcp",
-            internal_networks=(settings.egress_network, settings.control_network),
-            external_networks=(settings.egress_network,),
+            internal_networks=(settings.egress_network, settings.uplink_network),
+            external_networks=(settings.uplink_network,),
             hash_excludes=COMMON_HASH_EXCLUDES,
             env={
-                "UPSTREAM_HOST": settings.llm_upstream_host,
-                "UPSTREAM_PORT": settings.llm_upstream_port,
+                "OPENAI_UPSTREAM_HOST": settings.openai_upstream_host,
+                "OPENAI_UPSTREAM_PORT": settings.openai_upstream_port,
+                "OPENAI_UPSTREAM_PATH": settings.openai_upstream_path,
+                "OPENAI_API_KEY": settings.openai_api_key,
             },
         )
 
@@ -120,12 +141,13 @@ class SandboxShell(cmd.Cmd):
             print("already up — use 'down' first")
             return
 
-        print("bringing up target + gateway + agent...")
+        print("bringing up target + gateway + egress + agent...")
         try:
             self._orchestrator.start(
                 target=self._target_manifest(),
                 gateway=self._gateway_manifest(),
-                agent=self._agent_manifest(),
+                llm_egress=self._llm_egress_manifest(),
+                agent=self._openai_agent_manifest(),
             )
         except Exception as error:
             print(f"up failed: {error}")
@@ -247,6 +269,122 @@ class SandboxShell(cmd.Cmd):
             print(f"agent activity: {response.json().get('status', '?')}")
         except Exception:
             pass
+
+        self._probe_provider_direct()
+        self._probe_llm_egress()
+
+    import os
+    import time
+    import httpx
+
+    def _probe_provider_direct(self) -> None:
+        """Direct check: GET https://deepcode.ci.nsu.ru/api/models to verify provider connectivity."""
+        url = f"{settings.openai_upstream_host}/models"
+        print(f"provider_direct probe: GET {url}")
+
+        # Извлекаем API-ключ из переменных окружения (замените DEEPCODE_API_KEY на ваш актуальный ключ)
+
+        # Формируем заголовки. Если ключа нет, отправляем пустую строку или обрабатываем ошибку
+        headers = {
+            "Authorization": f"Bearer {settings.openai_api_key or ''}"
+        }
+
+        t0 = time.monotonic()
+        try:
+            # Отправляем GET запрос с заголовками авторизации и таймаутом
+            response = httpx.get(url, headers=headers, timeout=15.0)
+            elapsed = time.monotonic() - t0
+
+            # Опционально: проверка статуса ответа (например, 401 Unauthorized, если ключ неверный)
+            if response.status_code == 401:
+                print(
+                    f"provider_direct probe: FAIL — Unauthorized. Check your API key. (Status: {response.status_code})")
+                return
+
+            print(f"provider_direct probe: SUCCESS — Status: {response.status_code} ({elapsed:.2f}s)")
+
+        except httpx.TimeoutException:
+            print("provider_direct probe: FAIL — timeout (provider host down or slow?)")
+            return
+        except httpx.ConnectError as error:
+            print(f"provider_direct probe: FAIL — connect error (DNS/network issue): {error}")
+            return
+        except Exception as error:
+            print(f"provider_direct probe: FAIL — {type(error).__name__}: {error}")
+            return
+
+        body_preview = (response.text or "")[:240].replace("\n", " ")
+        if response.status_code == 200:
+            print(f"provider_direct probe: OK — HTTP 200 in {elapsed:.2f}s")
+            return
+
+        print(f"provider_direct probe: FAIL — HTTP {response.status_code} in {elapsed:.2f}s")
+        if body_preview:
+            print(f"  body: {body_preview}")
+
+    def _probe_llm_egress(self) -> None:
+        """Live check: POST /v1/chat/completions through llm_egress to the provider."""
+        try:
+            instance = self._orchestrator.get("llm_egress")
+        except KeyError:
+            print("llm_egress probe: skipped (no llm_egress node)")
+            return
+        try:
+            if not instance.is_running():
+                print("llm_egress probe: FAIL — container not running")
+                return
+        except Exception as error:
+            print(f"llm_egress probe: FAIL — cannot inspect container: {error}")
+            return
+        try:
+            # Agent reaches egress over sandbox-egress-net; same path from here.
+            ip = instance.ip(settings.egress_network)
+        except Exception as error:
+            print(f"llm_egress probe: FAIL — no IP on {settings.egress_network}: {error}")
+            return
+        url = f"http://{ip}:{settings.llm_egress_port}/v1/chat/completions"
+        payload = {
+            "model": settings.openai_model,
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 5,
+            "stream": False,
+        }
+        print(
+            f"llm_egress probe: POST {url} "
+            f"(model={settings.openai_model}, upstream={settings.openai_upstream_host})"
+        )
+        t0 = time.monotonic()
+        try:
+            response = httpx.post(url, json=payload, timeout=30.0)
+            elapsed = time.monotonic() - t0
+        except httpx.TimeoutException:
+            print("llm_egress probe: FAIL — timeout (proxy up? upstream slow/unreachable?)")
+            return
+        except httpx.ConnectError as error:
+            print(f"llm_egress probe: FAIL — connect error: {error}")
+            return
+        except Exception as error:
+            print(f"llm_egress probe: FAIL — {type(error).__name__}: {error}")
+            return
+        body_preview = (response.text or "")[:240].replace("\n", " ")
+        if response.status_code == 200:
+            print(f"llm_egress probe: OK — HTTP 200 in {elapsed:.2f}s")
+            if body_preview:
+                print(f" body: {body_preview}")
+            return
+        # Proxy returns 502 when upstream fails; 403 if path is wrong; 401 from provider auth.
+        hint = ""
+        if response.status_code == 502:
+            hint = " (proxy reachable, upstream/provider failed — check OPENAI_* and logs)"
+        elif response.status_code == 403:
+            hint = " (path rejected by proxy — expected /v1/chat/completions)"
+        elif response.status_code == 401:
+            hint = " (auth rejected by provider — check OPENAI_API_KEY)"
+        print(
+            f"llm_egress probe: FAIL — HTTP {response.status_code} in {elapsed:.2f}s{hint}"
+        )
+        if body_preview:
+            print(f" body: {body_preview}")
 
     # ------------------------------------------------------------------
     # Log watching
