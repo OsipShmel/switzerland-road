@@ -1,39 +1,27 @@
 from __future__ import annotations
 
-import asyncio
-import httpx
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI
+from VLSManager import router as vls_router
+from supervisor import router as supervisor_router
+from sandbox_io_manager import router as sandbox_router
 
-from VLSManager import vls_manager_instance
-from supervisor import Supervisor
-from supervisor_shell import SupervisorShell
+app = FastAPI(title="Sandbox Manager API")
 
+app.include_router(vls_router)          # /api/vls/*
+app.include_router(supervisor_router)   # /api/supervisor/*
+app.include_router(sandbox_router)      # /sandbox/*
 
-#дерьмонстрационная поеба
-
-app = FastAPI()
-
-def get_vls_manager():
-    return vls_manager_instance
-    
-@app.post("/log-vls")    
-async def receive_vls_registry(
-        request: Request,
-        background_tasks: BackgroundTasks
-):
-    raw_resp = await request.body()
-    background_tasks.add_task(vls_manager_instance._process_json, raw_resp)
-    return {"is_success": True}    
-
-
-async def main():
-    async with httpx.AsyncClient() as client:
-        supervisor = Supervisor(client=client)
-        shell = SupervisorShell(supervisor=supervisor)
-        await asyncio.gather(shell.run())
+@app.get("/")
+async def root():
+    return {
+        "message": "Sandbox Manager API",
+        "endpoints": {
+            "vls": "/api/vls/*",
+            "supervisor": "/api/supervisor/*",
+            "sandbox": "/sandbox/*"
+        }
+    }
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Приложение остановлено.")
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

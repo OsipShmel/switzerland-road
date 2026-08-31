@@ -6,8 +6,11 @@ from pathlib import Path
 from datetime import datetime
 import aiofiles
 from pydantic import TypeAdapter
+from fastapi import APIRouter, Request, BackgroundTasks
 
 from vls import VlsRegistry, VLS 
+
+router = APIRouter(prefix="/api/vls", tags=["vls"])
 
 class VLSManager:
     
@@ -33,6 +36,16 @@ class VLSManager:
             print(normalised_vls)
         else:
             print(f"vls by id {vls_id} not found. check logs")
+
+    async def get_by_id(self, vls_id: str) -> dict | None:
+        if not self._current_vlsreg:
+            return None
+        
+        vls_item = self._current_vlsreg.get(vls_id)
+        if vls_item:
+            vls_dict = self._vls_adapter.dump_python(vls_item, mode="json")
+            return vls_dict
+        return None
         
     async def _process_json(self, raw_resp: bytes) -> None:
         self._current_vlsreg = self._vlsreg_adapter.validate_json(raw_resp)
@@ -41,5 +54,13 @@ class VLSManager:
         
         async with aiofiles.open(self._log_file, mode="a", encoding="utf-8") as f:
             await f.write(normalised_json + "\n")
+
+@router.get("/vls/{vls_id}")
+async def get_vls_by_id(vls_id: str):
+    """Эндпоинт для получения VLS по ID"""
+    result = await vls_manager_instance.get_by_id(vls_id)
+    if result is None:
+        return {"error": f"VLS with id {vls_id} not found"}, 404
+    return result
 
 vls_manager_instance = VLSManager()

@@ -5,7 +5,7 @@ import os
 import asyncio
 import httpx
 from zipfile import ZipFile, ZIP_DEFLATED
-
+from fastapi import APIRouter
 #import docker
 #from docker.errors import NotFound
 
@@ -13,13 +13,14 @@ from vls import VlsRegistry
 from VLSManager import vls_manager_instance
 from sandbox_io_manager import SandboxIOManager
 
+router = APIRouter(prefix="/api/supervisor", tags=["supervisor"])
+
 class Supervisor:
 
-    PORT = "1337"
-    #надо будет подтянуть из апи докераб как и имя контейнера
     MAX_RETRIES = 5
     
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, client: httpx.AsyncClient, port: int) -> None:
+        self.PORT = port
         self._vlsmanager = vls_manager_instance
         self._client = client
         self._iomanager = SandboxIOManager(self.PORT, self._client)
@@ -80,4 +81,17 @@ class Supervisor:
             await asyncio.sleep(5)
 
         print("Target successfully sent")
+
+@router.post("/start")
+async def start_supervisor(
+    target_link: str,
+    vlsreg: VlsRegistry | None = None
+):
+    """Эндпоинт для запуска Supervisor с целевым приложением"""
+    supervisor = Supervisor()
+    result = await supervisor.start(target_link, vlsreg)
+    return result
+
+
+supervisor_instance = Supervisor()
 

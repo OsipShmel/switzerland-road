@@ -39,3 +39,16 @@ class SandboxIOManager:
         except httpx.RequestError as e:
             print(f"transport request error: {e}")
             return False
+
+@router.post("/receive-vls")
+async def receive_vls_from_sandbox(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """
+    Эндпоинт для получения VLS регистра от второго сервера (песочницы).
+    Аналогичен /log-vls, но для взаимодействия между серверами.
+    """
+    raw_resp = await request.body()
+    background_tasks.add_task(vls_manager_instance._process_json, raw_resp)
+    return {"is_success": True}
