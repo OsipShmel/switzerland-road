@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "gateway",
+      "type": "gateway",
+      "zone": "public"
+    },
+    {
+      "id": "juice-shop",
+      "type": "service"
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "criticality": "critical"
+    }
+  ],
+  "edges": [
+    {
+      "source": "gateway",
+      "target": "juice-shop"
+    },
+    {
+      "source": "juice-shop",
+      "target": "database"
+    }
+  ]
+}

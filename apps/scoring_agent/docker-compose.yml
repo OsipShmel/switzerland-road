@@ -1,8 +1,8 @@
 services:
   scoring-agent:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/scoring_agent/Dockerfile
     container_name: scoring-agent-app
     ports:
       - "8000:8000"

@@ -56,6 +56,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("logs"),
         help="Directory for the standalone DAST report.",
     )
+    parser.add_argument(
+        "--scoring-topology",
+        type=Path,
+        help="Topology JSON used by the scoring agent.",
+    )
+    parser.add_argument(
+        "--scoring-service",
+        help="Service node from topology that owns the target repository.",
+    )
 
     return parser
 
@@ -63,6 +72,19 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
     try:
+        scorer = None
+        if args.scoring_topology is not None:
+            if not args.scoring_service:
+                raise PipelineError(
+                    "--scoring-service is required with --scoring-topology"
+                )
+            # cli создает конкретный скоринг
+            from scoring_agent import RegistryScoringAgent
+
+            scorer = RegistryScoringAgent.from_topology_file(
+                args.scoring_topology,
+                args.scoring_service,
+            )
         registry = run_pipeline(
             args.target_dir,
             dast_base_url=args.dast_base_url,
@@ -73,6 +95,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             zap_network=args.zap_network,
             zap_image=args.zap_image,
             zap_timeout=args.zap_timeout,
+            scorer=scorer,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
@@ -84,6 +107,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(1) from exc
 
     records = registry.all()
+    if args.scoring_topology is not None:
+        scored = sum(
+            bool(item.sast and item.sast.score is not None)
+            for item in records
+        )
+        print(f"Scoring: {scored}/{len(records)}")
     if args.disable_correlation:
         print("Endpoint correlation: disabled")
     else:

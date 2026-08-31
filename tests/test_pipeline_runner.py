@@ -64,6 +64,36 @@ class SemgrepScannerTests(unittest.TestCase):
 
 
 class SecurityPipelineTests(unittest.TestCase):
+    def test_pipeline_scores_registry_before_returning_it(self) -> None:
+        scanner = Mock()
+        scanner.scan.return_value = {
+            "results": [
+                {
+                    "check_id": "python.sql-injection",
+                    "path": "app.py",
+                    "start": {"line": 1},
+                    "extra": {"message": "sql injection"},
+                }
+            ]
+        }
+        scorer = Mock()
+
+        def add_score(registry, _target):
+            vulnerability = registry.all()[0]
+            sast = vulnerability.sast.model_copy(update={"score": 7.5})
+            registry.upsert(vulnerability.model_copy(update={"sast": sast}))
+            return registry
+
+        scorer.score_registry.side_effect = add_score
+        result = SecurityPipeline(
+            scanner,
+            VLSBuilder(),
+            scorer=scorer,
+        ).run(".", correlation_enabled=False)
+
+        self.assertEqual(result.all()[0].sast.score, 7.5)
+        scorer.score_registry.assert_called_once()
+
     def test_public_method_returns_vls_registry(self) -> None:
         with tempfile.TemporaryDirectory() as directory, patch(
             "orchestrator.pipeline_runner.SemgrepScanner.scan",

@@ -1,123 +1,198 @@
+from __future__ import annotations
+
 import json
-import networkx as nx
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
 from openai import OpenAI
-from src.scoring_agent.config import API_KEY, BASE_URL, MODEL, THRESHOLD
-from src.scoring_agent.graph_tools import extract_node_metrics
-from src.scoring_agent.schemas import (
-    LLMScoringResponse,
-    ScoringPipelineResult,
-    VLSObject,
-    SastBlock,
-    VerificationHistory
-)
+from vls import SastBlock, VLS, VlsRegistry
+
+from .config import API_KEY, BASE_URL, MODEL, THRESHOLD
+from .graph_tools import extract_node_metrics, parse_topology
+from .schemas import ScoringDecision, ScoringResponse
 
 
-SYS_PROMPT = """Ты — экспертная система анализа защищенности (AppSec). Твоя задача — проводить контекстный скоринг уязвимостей от SAST на основе сниппета кода и топологии сети.
-
-Правила анализа:
-1. Фильтрация False Positive: если в коде видна строгая санитизация (приведение типов, ORM, регулярки) или сервис полностью изолирован в сети (is_exposed=False и нет пути), установи is_false_positive=True, context_score < 4.0 и укажи причину в discard_reason.
-2. Базовая иерархия уязвимостей: RCE / Command Injection > SQL Injection > SSRF > Path Traversal > XSS > Information Disclosure.
-3. Корректировка балла:
-   - Внешняя доступность (is_exposed=True, hops <= 1): повышать балл.
-   - Достижимость критических БД/секретов (crit_assets не пустой): повышать балл.
-   - Высокая центральность (> 0.3): повышать балл.
-4. Извлеки точные координаты (target: endpoint, method, param) и сформируй емкую гипотезу для пентестера."""
+SYS_PROMPT = """Ты — экспертная система AppSec-скоринга.
+Верни ровно одно решение для каждого vulnerability_id из входа.
+Оцени риск от 0 до 10 с учетом кода, endpoint и топологии.
+Внешняя доступность и достижимость критических активов повышают оценку.
+Явная безопасная обработка входа и изоляция сервиса снижают оценку.
+Не придумывай новые vulnerability_id и не изменяй endpoint.
+Для вероятного false positive установи is_false_positive=true и score ниже порога.
+"""
 
 
-def load_graph(p: str) -> nx.DiGraph:
-    with open(p, "r", encoding="utf-8") as f:
-        d = json.load(f)
-    g = nx.DiGraph()
-    for n in d.get("nodes", []):
-        g.add_node(n["id"], **n)
-    for e in d.get("edges", []):
-        g.add_edge(e["source"], e["target"])
-    return g
+class RegistryScoringAgent:
+    """добавляет score в существующий vls registry."""
 
+    def __init__(
+        self,
+        topology: Mapping[str, Any],
+        service_name: str,
+        *,
+        client: Any | None = None,
+        model: str = MODEL,
+        threshold: float = THRESHOLD,
+    ) -> None:
+        if not service_name:
+            raise ValueError("для скоринга требуется service_name")
+        self.graph = parse_topology(topology)
+        if service_name not in self.graph:
+            raise ValueError(
+                f"service_name отсутствует в topology: {service_name}"
+            )
+        self.service_name = service_name
+        if client is None and not API_KEY:
+            raise ValueError(
+                "OPENAI_API_KEY не задан: добавь его в "
+                "apps/scoring_agent/.env"
+            )
+        self.client = client or OpenAI(api_key=API_KEY, base_url=BASE_URL)
+        self.model = model
+        self.threshold = threshold
 
-def load_sast(p: str) -> list[dict]:
-    with open(p, "r", encoding="utf-8") as f:
-        return json.load(f)
+    @classmethod
+    def from_topology_file(
+        cls,
+        topology_path: str | Path,
+        service_name: str,
+        **kwargs: Any,
+    ) -> "RegistryScoringAgent":
+        path = Path(topology_path).expanduser().resolve()
+        try:
+            topology = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                f"не удалось прочитать topology: {path}"
+            ) from exc
+        if not isinstance(topology, dict):
+            raise ValueError("topology должна быть json-объектом")
+        return cls(topology, service_name, **kwargs)
 
+    def score_registry(
+        self,
+        registry: VlsRegistry,
+        target_dir: str | Path,
+    ) -> VlsRegistry:
+        records = [item for item in registry.all() if item.sast is not None]
+        if not records:
+            return registry
 
-def build_prompt_payload(sast_list: list[dict], g: nx.DiGraph) -> str:
-    ctx = []
-    for x in sast_list:
-        s_name = x.get("service_name", "")
-        m = extract_node_metrics(g, s_name)
-        ctx.append({
-            "task_id": x.get("task_id"),
-            "service": s_name,
-            "title": x.get("title"),
-            "file_path": x.get("file_path"),
-            "line": x.get("line"),
-            "code_snippet": x.get("code_snippet"),
-            "raw_score": x.get("raw_score"),
-            "graph_metrics": m.model_dump()
-        })
-    return json.dumps(ctx, ensure_ascii=False, indent=2)
-
-
-def run_scoring(sast_path: str, topo_path: str) -> ScoringPipelineResult:
-    g = load_graph(topo_path)
-    sast_data = load_sast(sast_path)
-    payload = build_prompt_payload(sast_data, g)
-
-    cli = OpenAI(api_key=API_KEY, base_url=BASE_URL)
-    res = cli.beta.chat.completions.parse(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": SYS_PROMPT},
-            {"role": "user", "content": f"Проанализируй находки:\n{payload}"}
-        ],
-        response_format=LLMScoringResponse
-    )
-
-    parsed = res.choices[0].message.parsed
-    if not parsed:
-        raise ValueError("LLM parsing error")
-
-    sast_map = {x["task_id"]: x for x in sast_data}
-
-    q: list[VLSObject] = []
-    disc = []
-
-    for it in parsed.items:
-        if it.is_false_positive or it.context_score < THRESHOLD:
-            disc.append(it)
-            continue
-
-        raw = sast_map.get(it.task_id, {})
-        vls = VLSObject(
-            vulnerability_id=it.task_id,
-            title=raw.get("title", it.vuln_type),
-            status="unchecked",
-            verdict=None,
-            confirmed_by=None,
-            sast=SastBlock(
-                tool="semgrep",
-                rule_id=raw.get("rule_id", "custom"),
-                file_path=raw.get("file_path", ""),
-                line=raw.get("line", 0),
-                score=it.context_score,
-                code_snippet=raw.get("code_snippet")
-            ),
-            target=it.target,
-            hypothesis=it.hypothesis,
-            verification_history=VerificationHistory()
+        payload = self._prompt_payload(records, target_dir)
+        response = self.client.beta.chat.completions.parse(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": SYS_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Порог false positive: {self.threshold}. "
+                        f"Оцени находки:\n{payload}"
+                    ),
+                },
+            ],
+            response_format=ScoringResponse,
         )
-        q.append(vls)
+        parsed = response.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError(
+                "llm не вернула структурированный результат"
+            )
 
-    q.sort(key=lambda x: x.sast.score if x.sast else 0.0, reverse=True)
+        decisions = self._validated_decisions(parsed.items, records)
+        for vulnerability in records:
+            registry.upsert(
+                self._with_score(
+                    vulnerability,
+                    decisions[vulnerability.id].score,
+                )
+            )
+        return registry
 
-    return ScoringPipelineResult(
-        total_count=len(parsed.items),
-        discarded_count=len(disc),
-        queue=q,
-        discarded=disc
-    )
+    def _prompt_payload(
+        self,
+        records: list[VLS],
+        target_dir: str | Path,
+    ) -> str:
+        metrics = extract_node_metrics(self.graph, self.service_name)
+        payload = []
+        for vulnerability in records:
+            sast = vulnerability.sast
+            assert sast is not None
+            payload.append(
+                {
+                    "vulnerability_id": vulnerability.id,
+                    "title": vulnerability.title,
+                    "rule_id": sast.rule_id,
+                    "file_path": sast.file_path,
+                    "line": sast.line,
+                    "severity": sast.severity,
+                    "cwe": sast.cwe,
+                    "endpoint": (
+                        sast.endpoint.model_dump(mode="json")
+                        if sast.endpoint is not None
+                        else None
+                    ),
+                    "code_snippet": self._code_snippet(
+                        target_dir,
+                        sast.file_path,
+                        sast.line,
+                    ),
+                    "service": self.service_name,
+                    "graph_metrics": metrics.model_dump(mode="json"),
+                }
+            )
+        return json.dumps(payload, ensure_ascii=False, indent=2)
 
+    @staticmethod
+    def _validated_decisions(
+        items: list[ScoringDecision],
+        records: list[VLS],
+    ) -> dict[str, ScoringDecision]:
+        expected = {item.id for item in records}
+        decisions: dict[str, ScoringDecision] = {}
+        for item in items:
+            if item.vulnerability_id in decisions:
+                raise ValueError(
+                    f"llm продублировала id: {item.vulnerability_id}"
+                )
+            decisions[item.vulnerability_id] = item
+        actual = set(decisions)
+        if actual != expected:
+            missing = sorted(expected - actual)
+            unknown = sorted(actual - expected)
+            raise ValueError(
+                "llm вернула неверный набор id: "
+                f"missing={missing}, unknown={unknown}"
+            )
+        return decisions
 
-if __name__ == "__main__":
-    out = run_scoring("test_data/sast_report.json", "test_data/topology.json")
-    print(out.model_dump_json(indent=2))
+    @staticmethod
+    def _with_score(vulnerability: VLS, score: float) -> VLS:
+        assert vulnerability.sast is not None
+        sast_data = vulnerability.sast.model_dump(mode="python")
+        sast_data["score"] = score
+        data = vulnerability.model_dump(mode="python")
+        data["sast"] = SastBlock.model_validate(sast_data)
+        return VLS.model_validate(data)
+
+    @staticmethod
+    def _code_snippet(
+        target_dir: str | Path,
+        file_path: str,
+        line: int,
+    ) -> str | None:
+        target = Path(target_dir).expanduser().resolve()
+        source = (target / file_path).resolve()
+        try:
+            source.relative_to(target)
+            lines = source.read_text(encoding="utf-8").splitlines()
+        except (ValueError, OSError, UnicodeDecodeError):
+            return None
+        start = max(0, line - 3)
+        end = min(len(lines), line + 2)
+        return "\n".join(
+            f"{number}: {lines[number - 1]}"
+            for number in range(start + 1, end + 1)
+        )

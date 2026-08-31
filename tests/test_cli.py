@@ -4,12 +4,44 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from orchestrator.cli import main
 
 
 class CLITests(unittest.TestCase):
+    def test_scoring_agent_is_connected_by_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            output = target / "result.json"
+            topology = target / "topology.json"
+            topology.write_text("{}", encoding="utf-8")
+            scorer = Mock()
+            scorer.score_registry.side_effect = lambda registry, _: registry
+
+            with patch(
+                "orchestrator.pipeline_runner.SemgrepScanner.scan",
+                return_value={"results": []},
+            ), patch(
+                "scoring_agent.RegistryScoringAgent.from_topology_file",
+                return_value=scorer,
+            ) as build_scorer:
+                main(
+                    [
+                        "--target-dir",
+                        str(target),
+                        "--output",
+                        str(output),
+                        "--scoring-topology",
+                        str(topology),
+                        "--scoring-service",
+                        "juice-shop",
+                    ]
+                )
+
+        build_scorer.assert_called_once_with(topology, "juice-shop")
+        scorer.score_registry.assert_called_once()
+
     def test_target_dir_is_supplied_to_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)

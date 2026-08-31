@@ -10,8 +10,12 @@ dependencies = [
     "pydantic>=2.8.0",
     "networkx>=3.3",
     "openai>=1.40.0",
-    "python-dotenv>=1.0.1"
+    "python-dotenv>=1.0.1",
+    "vls",
 ]
+
+[tool.uv.sources]
+vls = { workspace = true }
 
 [project.scripts]
 scoring-agent = "scoring_agent.app:main"

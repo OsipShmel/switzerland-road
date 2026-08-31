@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from data_enricher import VLSBuilder
 from vls import VlsRegistry
@@ -66,6 +66,14 @@ class SemgrepScanner:
         return output
 
 
+class RegistryScorer(Protocol):
+    def score_registry(
+        self,
+        registry: VlsRegistry,
+        target_dir: str | Path,
+    ) -> VlsRegistry: ...
+
+
 class SecurityPipeline:
     """собирает результаты проверок в vls registry."""
 
@@ -75,11 +83,13 @@ class SecurityPipeline:
         builder: VLSBuilder,
         endpoint_locator: EndpointLocator | None = None,
         dast_scanner: ZapDastScanner | None = None,
+        scorer: RegistryScorer | None = None,
     ) -> None:
         self.scanner = scanner
         self.builder = builder
         self.endpoint_locator = endpoint_locator or EndpointLocator()
         self.dast_scanner = dast_scanner
+        self.scorer = scorer
 
     def run(
         self,
@@ -97,6 +107,9 @@ class SecurityPipeline:
             else semgrep_output
         )
         registry = VlsRegistry.from_records(self.builder.build(enriched_output))
+        if self.scorer is not None:
+            # скоринг обновляет vls до dast
+            registry = self.scorer.score_registry(registry, target)
 
         if dast_base_url is None:
             return registry
@@ -150,6 +163,7 @@ def run_pipeline(
     zap_network: str | None = None,
     zap_image: str = "ghcr.io/zaproxy/zaproxy:stable",
     zap_timeout: float = 900,
+    scorer: RegistryScorer | None = None,
 ) -> VlsRegistry:
     """запускает весь пайплайн и возвращает готовый registry."""
     dast_scanner = None
@@ -166,6 +180,7 @@ def run_pipeline(
         scanner=SemgrepScanner(semgrep_config, semgrep_timeout),
         builder=VLSBuilder(),
         dast_scanner=dast_scanner,
+        scorer=scorer,
     )
     return pipeline.run(
         target_dir,

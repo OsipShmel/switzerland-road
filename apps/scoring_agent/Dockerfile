@@ -1,18 +1,13 @@
-FROM python:3.14-slim
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
 
-WORKDIR /app
+WORKDIR /workspace
 
-# Установка uv для сверхбыстрой сборки
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY pyproject.toml uv.lock ./
+COPY apps/scoring_agent ./apps/scoring_agent
+COPY packages/vls ./packages/vls
 
-# Установка зависимостей из pyproject.toml
-COPY pyproject.toml .
-RUN uv pip install --system -r pyproject.toml
-
-# Копирование исходного кода
-COPY . .
+RUN uv sync --frozen --package scoring-agent --no-dev
 
 EXPOSE 8000
 
-# Запуск приложения из структуры src
-CMD ["uvicorn", "src.scoring_agent.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/workspace/.venv/bin/uvicorn", "scoring_agent.app:app", "--host", "0.0.0.0", "--port", "8000"]
