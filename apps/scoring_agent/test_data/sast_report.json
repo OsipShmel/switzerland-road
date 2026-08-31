@@ -1,0 +1,32 @@
+[
+    {
+        "task_id": "vuln-001",
+        "service_name": "billing_svc",
+        "title": "SQL Injection in invoice export",
+        "rule_id": "python.lang.security.audit.sqli",
+        "file_path": "services/billing/views.py",
+        "line": 84,
+        "code_snippet": "query = f\"SELECT * FROM invoices WHERE id = '{req.params.get('id')}'\"",
+        "raw_score": 8.5
+    },
+    {
+        "task_id": "vuln-002",
+        "service_name": "auth_svc",
+        "title": "Potential Path Traversal",
+        "rule_id": "python.lang.security.audit.path-traversal",
+        "file_path": "services/auth/handlers.py",
+        "line": 32,
+        "code_snippet": "safe_id = int(req.params.get('user_id'))\npath = f'/var/data/{safe_id}'",
+        "raw_score": 7.0
+    },
+    {
+        "task_id": "vuln-003",
+        "service_name": "report_worker",
+        "title": "Command Injection in PDF generator",
+        "rule_id": "python.lang.security.audit.cmdi",
+        "file_path": "workers/report/generator.py",
+        "line": 15,
+        "code_snippet": "os.system(f'generate_pdf --title {req.data.title}')",
+        "raw_score": 9.0
+    }
+]

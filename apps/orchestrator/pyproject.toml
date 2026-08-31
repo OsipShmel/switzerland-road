@@ -6,10 +6,12 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "data-enricher",
+    "scoring-agent",
 ]
 
 [tool.uv.sources]
 data-enricher = { workspace = true }
+scoring-agent = { workspace = true }
 
 [project.scripts]
 orchestrator = "orchestrator:main"

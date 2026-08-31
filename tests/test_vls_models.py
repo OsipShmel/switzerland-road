@@ -6,10 +6,12 @@ from pydantic import ValidationError
 from vls import (
     DastReport,
     DastVerificationStep,
+    EndpointReference,
     PentestReport,
     PentestVerificationStep,
     SastBlock,
     VLS,
+    VlsRegistry,
 )
 
 
@@ -79,6 +81,54 @@ class VerificationStepTests(unittest.TestCase):
                 verdict_output="unconfirmed",
             )
 
+    def test_vls_applies_confirmed_dast_step(self) -> None:
+        vls = VLS(id="finding-id", title="sql injection")
+        step = DastVerificationStep(
+            run_executed=True,
+            verdict_output="confirmed",
+            human_report=DastReport(
+                executor_name="OWASP ZAP",
+                action_taken="active scan",
+                result_details="sql injection found",
+            ),
+        )
+
+        updated = vls.with_dast_verification(step)
+
+        self.assertTrue(updated.verification_history.dast.run_executed)
+        self.assertEqual(updated.status, "checked")
+        self.assertEqual(updated.verdict, "confirmed")
+        self.assertEqual(updated.confirmed_by, "dast")
+
+    def test_vls_applies_unconfirmed_dast_step(self) -> None:
+        vls = VLS(id="finding-id", title="sql injection")
+        step = DastVerificationStep(
+            run_executed=True,
+            verdict_output="unconfirmed",
+            human_report=DastReport(
+                executor_name="OWASP ZAP",
+                action_taken="active scan",
+                result_details="issue was not confirmed",
+            ),
+        )
+
+        updated = vls.with_dast_verification(step)
+
+        self.assertTrue(updated.verification_history.dast.run_executed)
+        self.assertEqual(updated.status, "unchecked")
+        self.assertIsNone(updated.verdict)
+        self.assertIsNone(updated.confirmed_by)
+
+    def test_dast_confirmation_requires_confirmed_step(self) -> None:
+        with self.assertRaises(ValidationError):
+            VLS(
+                id="finding-id",
+                title="sql injection",
+                status="checked",
+                verdict="confirmed",
+                confirmed_by="dast",
+            )
+
 
 class SastBlockTests(unittest.TestCase):
     def test_sast_block_has_safe_defaults(self) -> None:
@@ -100,6 +150,32 @@ class SastBlockTests(unittest.TestCase):
                 line=10,
                 score=11,
             )
+
+    def test_sast_block_accepts_endpoint_reference(self) -> None:
+        sast = SastBlock(
+            rule_id="python.sql-injection",
+            file_path="src/app.py",
+            line=10,
+            endpoint=EndpointReference(
+                path="/users",
+                http_methods=["POST"],
+                evidence=["маршрут найден над обработчиком"],
+            ),
+        )
+
+        self.assertEqual(sast.endpoint.path, "/users")
+        self.assertEqual(sast.endpoint.evidence, ["маршрут найден над обработчиком"])
+
+
+class VlsRegistryTests(unittest.TestCase):
+    def test_records_are_validated_and_serialized(self) -> None:
+        registry = VlsRegistry.from_records(
+            [{"id": "finding-id", "title": "sql injection"}]
+        )
+
+        self.assertEqual(len(registry), 1)
+        self.assertIsInstance(registry["finding-id"], VLS)
+        self.assertEqual(registry.to_records()[0]["status"], "unchecked")
 
 
 if __name__ == "__main__":

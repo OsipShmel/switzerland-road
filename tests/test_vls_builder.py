@@ -48,6 +48,30 @@ class VLSBuilderTests(unittest.TestCase):
         second = self.builder.build(self.semgrep)[0]["id"]
         self.assertEqual(first, second)
 
+    def test_vls_keeps_only_compact_endpoint_data(self) -> None:
+        self.semgrep["results"][0]["endpoint"] = {
+            "framework": "fastapi",
+            "path": "/users",
+            "http_methods": ["POST"],
+            "handler": "create_user",
+            "declaration_file": "src/auth.py",
+            "declaration_line": 40,
+            "query_parameters": [],
+            "parameters": [
+                {"name": "name", "location": "body", "required": True}
+            ],
+            "locator_confidence": 0.9,
+            "locator_evidence": ["маршрут найден над обработчиком"],
+        }
+
+        endpoint = self.builder.build(self.semgrep)[0]["sast"]["endpoint"]
+
+        self.assertEqual(
+            set(endpoint),
+            {"path", "http_methods", "query_parameters", "parameters", "evidence"},
+        )
+        self.assertEqual(endpoint["evidence"], ["маршрут найден над обработчиком"])
+
     def test_invalid_result_shape_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "results.*list"):
             self.builder.build({"results": {}})

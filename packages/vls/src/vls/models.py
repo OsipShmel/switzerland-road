@@ -27,6 +27,24 @@ class VerdictOutput(StrEnum):
     NOT_TESTED = "not_tested"
 
 
+class EndpointParameter(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    location: Literal["query", "path", "body", "header", "cookie"]
+    required: bool = False
+
+
+class EndpointReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str
+    http_methods: list[str] = Field(default_factory=list)
+    query_parameters: list[str] = Field(default_factory=list)
+    parameters: list[EndpointParameter] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+
+
 class SastBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -41,6 +59,7 @@ class SastBlock(BaseModel):
     cwe: list[str] = Field(default_factory=list)
     fingerprint: str | None = None
     score: float | None = Field(default=None, ge=0, le=10)
+    endpoint: EndpointReference | None = None
 
 
 class InstrumentReport(BaseModel):
@@ -55,6 +74,8 @@ class DastReport(InstrumentReport):
     parameter: str | None = None
     payload: str | None = None
     evidence: str | None = None
+    runtime_trace_id: str | None = None
+    runtime_evidence: list[str] = Field(default_factory=list)
 
 
 class PentestReport(InstrumentReport):
@@ -115,6 +136,19 @@ class VLS(BaseModel):
         default_factory=VerificationHistory
     )
 
+    def with_dast_verification(self, step: DastVerificationStep) -> "VLS":
+        if not step.run_executed:
+            raise ValueError("в vls добавляется только выполненная dast-проверка")
+
+        data = self.model_dump(mode="python")
+        data["verification_history"]["dast"] = step.model_dump(mode="python")
+        if step.verdict_output == VerdictOutput.CONFIRMED:
+            data["status"] = VLSStatus.CHECKED
+            data["verdict"] = VLSVerdict.CONFIRMED
+            data["confirmed_by"] = ConfirmedBy.DAST
+        # повторная валидация проверяет согласованность vls
+        return type(self).model_validate(data)
+
     @model_validator(mode="after")
     def check_state_matrix(self) -> "VLS":
         if self.status == VLSStatus.UNCHECKED:
@@ -134,5 +168,17 @@ class VLS(BaseModel):
 
         if isinstance(self.confirmed_by, list) and not self.confirmed_by:
             raise ValueError("confirmed_by list must not be empty")
+
+        confirmed_by = (
+            set(self.confirmed_by)
+            if isinstance(self.confirmed_by, list)
+            else {self.confirmed_by}
+        )
+        if (
+            ConfirmedBy.DAST in confirmed_by
+            and self.verification_history.dast.verdict_output
+            != VerdictOutput.CONFIRMED
+        ):
+            raise ValueError("confirmed_by=dast требует подтвержденный dast-этап")
 
         return self

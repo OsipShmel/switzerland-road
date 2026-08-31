@@ -1,0 +1,11 @@
+services:
+  scoring-agent:
+    build:
+      context: ../..
+      dockerfile: apps/scoring_agent/Dockerfile
+    container_name: scoring-agent-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped

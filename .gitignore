@@ -212,3 +212,8 @@ cython_debug/
 
 # output
 /output/
+
+/logs/
+
+/tests/
+
