@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import os
 from dataclasses import dataclass, field
@@ -7,6 +9,12 @@ from typing import Any, Literal
 
 @dataclass(frozen=True)
 class NodeManifest:
+    """Description of a container that can be managed by sandboxd.
+
+    `source_path` is the build-context root. `dockerfile` is relative to that
+    root, unless Docker is given an externally prepared context.
+    """
+
     source_path: Path
     target_port: int
     published_port: int | None = None
@@ -21,7 +29,7 @@ class NodeManifest:
     nano_cpus: int | None = None
     restart_policy: dict[str, str] = field(
         default_factory=lambda: {"Name": "unless-stopped"}
-    ) # "no" if for target, else unless-stopped
+    ) # "no" = if target. otherwise "unless-stopped"
 
     internal_networks: tuple[str, ...] = field(default_factory=tuple)
     external_networks: tuple[str, ...] = field(default_factory=tuple)
@@ -29,72 +37,92 @@ class NodeManifest:
     extra_options: dict[str, Any] = field(default_factory=dict)
 
     hash_excludes: tuple[str, ...] = field(default_factory=tuple)
-    #TODO! вот это внезапный момент, надо поправить везде где надо
     health_check_type: Literal["http", "tcp"] = "http"
+
     @property
     def image_tag(self) -> str:
-        dir_hash = self._calculate_dir_hash(self.source_path, self.hash_excludes)
-        dockerfile_hash = hashlib.md5(self.dockerfile.encode()).hexdigest()[:5]
-        return f"{self.image_prefix}:{dir_hash}-{dockerfile_hash}"
+        context_hash = self.calculate_context_hash(self.source_path, self.hash_excludes)
+        dockerfile_hash = self._calculate_dockerfile_hash()
+        return f"{self.image_prefix}:{context_hash}-{dockerfile_hash}"
 
+    def _calculate_dockerfile_hash(self) -> str:
+        dockerfile_path = self.source_path / self.dockerfile
+        try:
+            content = dockerfile_path.read_bytes()
+        except OSError:
+            # Keep the image tag deterministic even for manifests that are
+            # intentionally resolved by Docker at build time.
+            content = self.dockerfile.encode()
+        return hashlib.sha256(content).hexdigest()[:6]
 
     @staticmethod
-    def _is_excluded(rel_path: PurePosixPath, excludes: tuple[str, ...]) -> bool:
-        rel_str = rel_path.as_posix()
+    def is_excluded(rel_path: PurePosixPath, excludes: tuple[str, ...]) -> bool:
+        rel_str = rel_path.as_posix().lstrip("./")
         return any(
-            rel_str == ex or rel_str.startswith(ex.rstrip("/") + "/")
+            rel_str == ex.rstrip("/")
+            or rel_str.startswith(ex.rstrip("/") + "/")
             for ex in excludes
         )
 
-    # WARN!
-    # Данный подход конфликтует с параллельным запуском нескольких таргетов от одного sandboxd.
-    # Сейчас не проблема, стоит помнить
     @staticmethod
-    def _calculate_dir_hash(path: Path, excludes: tuple[str, ...] = ()) -> str:
-        hasher = hashlib.md5()
+    def calculate_context_hash(
+        path: Path,
+        excludes: tuple[str, ...] = (),
+    ) -> str:
+        hasher = hashlib.sha256()
+
         for root, dirnames, files in sorted(os.walk(path)):
             root_path = Path(root)
             rel_root = PurePosixPath(root_path.relative_to(path).as_posix())
 
             dirnames[:] = sorted(
-                d for d in dirnames
-                if not NodeManifest._is_excluded(rel_root / d, excludes)
+                d
+                for d in dirnames
+                if not NodeManifest.is_excluded(rel_root / d, excludes)
             )
 
-            for file in sorted(files):
-                file_path = root_path / file
+            for filename in sorted(files):
+                file_path = root_path / filename
                 rel_file = PurePosixPath(file_path.relative_to(path).as_posix())
-                if NodeManifest._is_excluded(rel_file, excludes):
+                if NodeManifest.is_excluded(rel_file, excludes):
                     continue
-                hasher.update(str(rel_file).encode())
+
+                hasher.update(rel_file.as_posix().encode())
                 try:
                     hasher.update(file_path.read_bytes())
-                except IOError:
-                    pass
-        return hasher.hexdigest()[:5]
+                except OSError:
+                    # Files changing while a context is hashed should not make
+                    # the whole orchestrator crash merely because they vanished.
+                    continue
+
+        return hasher.hexdigest()[:12]
 
     @classmethod
-    def create_disposable(cls, source_path: Path, target_port: int, **kwargs) -> NodeManifest:
-        defaults = {
+    def create_disposable(
+        cls,
+        source_path: Path,
+        target_port: int,
+        **kwargs: Any,
+    ) -> NodeManifest:
+        defaults: dict[str, Any] = {
             "mem_limit": "512m",
-            "nano_cpus": 1000000000,
+            "nano_cpus": 1_000_000_000,
             "restart_policy": {"Name": "no"},
         }
-        return cls(
-            source_path=source_path,
-            target_port=target_port,
-            **(defaults | kwargs)
-        )
+        defaults.update(kwargs)
+        return cls(source_path=source_path, target_port=target_port, **defaults)
 
     @classmethod
-    def create_stable(cls, source_path: Path, target_port: int, **kwargs) -> NodeManifest:
-        defaults = {
+    def create_stable(
+        cls,
+        source_path: Path,
+        target_port: int,
+        **kwargs: Any,
+    ) -> NodeManifest:
+        defaults: dict[str, Any] = {
             "mem_limit": "1g",
             "nano_cpus": None,
             "restart_policy": {"Name": "unless-stopped"},
         }
-        return cls(
-            source_path=source_path,
-            target_port=target_port,
-            **(defaults | kwargs)
-        )
+        defaults.update(kwargs)
+        return cls(source_path=source_path, target_port=target_port, **defaults)

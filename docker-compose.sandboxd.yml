@@ -4,13 +4,69 @@ services:
       context: .
       dockerfile: Dockerfile
 
-
     init: true
+    # DIND currently needs full privileges for the PoC.
+    # Future hardening should replace it with the minimum capability/cgroup set.
     privileged: true
     cgroup: host
 
-    ports:
-      - "18000-18100:18000-18100"
+    environment:
+      # ----------------------------------------------------------------
+      # Filesystem
+      # ----------------------------------------------------------------
+
+      SANDBOXD_PROJECT_ROOT: "${SANDBOXD_PROJECT_ROOT:-/app}"
+      SANDBOXD_GATEWAY_LOGS_DIR: "${SANDBOXD_GATEWAY_LOGS_DIR:-/var/lib/sandboxd/gateway_logs}"
+      SANDBOXD_TARGET_DIR: "${SANDBOXD_TARGET_DIR:-/app/apps/sandboxd/tests/target_app/juice-shop-master}"
+      SANDBOXD_AGENT_DIR: "${SANDBOXD_AGENT_DIR:-/app/apps/sandboxd/tests/pentest_stub}"
+
+      # ----------------------------------------------------------------
+      # Dockerfiles
+      # ----------------------------------------------------------------
+
+      SANDBOXD_TARGET_DOCKERFILE: "${SANDBOXD_TARGET_DOCKERFILE:-Dockerfile}"
+      SANDBOXD_AGENT_DOCKERFILE: "${SANDBOXD_AGENT_DOCKERFILE:-apps/pentest_agent_test/Dockerfile}"
+      SANDBOXD_GATEWAY_DOCKERFILE: "${SANDBOXD_GATEWAY_DOCKERFILE:-apps/sandboxd/tests/gateway/Dockerfile}"
+      SANDBOXD_LLM_EGRESS_DOCKERFILE: "${SANDBOXD_LLM_EGRESS_DOCKERFILE:-apps/sandboxd/tests/llm_egress/Dockerfile}"
+
+      # ----------------------------------------------------------------
+      # Networks
+      # ----------------------------------------------------------------
+
+      SANDBOXD_TARGET_NETWORK: "${SANDBOXD_TARGET_NETWORK:-sandbox-target-net}"
+      SANDBOXD_CONTROL_NETWORK: "${SANDBOXD_CONTROL_NETWORK:-sandbox-control-net}"
+      SANDBOXD_EGRESS_NETWORK: "${SANDBOXD_EGRESS_NETWORK:-sandbox-egress-net}"
+
+      # ----------------------------------------------------------------
+      # Ports
+      # ----------------------------------------------------------------
+
+      SANDBOXD_AGENT_PORT: "${SANDBOXD_AGENT_PORT:-8080}"
+      SANDBOXD_GATEWAY_PORT: "${SANDBOXD_GATEWAY_PORT:-9000}"
+      SANDBOXD_LLM_EGRESS_PORT: "${SANDBOXD_LLM_EGRESS_PORT:-11434}"
+
+      # ----------------------------------------------------------------
+      # LLM
+      # ----------------------------------------------------------------
+
+      SANDBOXD_LLM_BRIDGE: "${SANDBOXD_LLM_BRIDGE:-1}"
+      SANDBOXD_EGRESS_DELAY_MS: "${SANDBOXD_EGRESS_DELAY_MS:-100}"
+
+      LLM_UPSTREAM_HOST: "${LLM_UPSTREAM_HOST:-host.docker.internal}"
+      LLM_UPSTREAM_PORT: "${LLM_UPSTREAM_PORT:-11435}"
+
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11435}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-gemma4-26b-think:latest}"
+
+      # ----------------------------------------------------------------
+      # Hash excludes
+      # ----------------------------------------------------------------
+
+      SANDBOXD_HASH_EXCLUDES: "${SANDBOXD_HASH_EXCLUDES:-sandboxd/tests/target,.git,.venv,__pycache__}"
+
+    # ports:
+    #   - "18000-18100:18000-18100"
 
     stdin_open: true
     tty: true
+    stop_grace_period: 10s

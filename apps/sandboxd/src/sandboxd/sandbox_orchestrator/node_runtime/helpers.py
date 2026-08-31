@@ -1,25 +1,22 @@
-
 from __future__ import annotations
+
 from docker.models.containers import Container
 
-
-# TODO! мне кажется я чем то не тем занимаюсь, не здоровая архитектура выходит вообще
-# все под рефакторинг.
+# Да, чатгпт принциально не может в рефакторинг
 def get_ip(container: Container, network: str) -> str:
+    """Return a container IPv4 address on a named Docker network."""
     container.reload()
     networks = container.attrs.get("NetworkSettings", {}).get("Networks", {})
-
     data = networks.get(network)
     if data is None:
         raise RuntimeError(
             f"container '{container.name}' is not attached to network '{network}'. "
-            f"attached: {list(networks.keys())}"
+            f"attached: {list(networks)}"
         )
 
-    ip_address = data.get("IPAddress")
-    if not ip_address:
+    address = data.get("IPAddress")
+    if not address:
         raise RuntimeError(
             f"container '{container.name}' has no IP yet on network '{network}'"
         )
-
-    return ip_address
+    return address

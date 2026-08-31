@@ -5,9 +5,15 @@ from sandboxd.sandbox_orchestrator.node_runtime.helpers import get_ip
 
 
 class NodeInstance:
+    """A stable sandboxd handle over one Docker container."""
+
     def __init__(self, alias: str, container: Container) -> None:
         self.alias = alias
         self._container = container
+
+    @property
+    def id(self) -> str:
+        return self._container.id
 
     def exec(self, command: str) -> str:
         _, output = self._container.exec_run(command)
@@ -23,7 +29,7 @@ class NodeInstance:
     def ip(self, network: str) -> str:
         return get_ip(self._container, network)
 
-    #TODO?
     @property
     def raw_access(self) -> Container:
+        """Legacy Docker escape hatch; prefer the NodeInstance API above."""
         return self._container

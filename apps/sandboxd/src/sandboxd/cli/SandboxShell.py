@@ -2,127 +2,19 @@ from __future__ import annotations
 
 import cmd
 import json
-import os
 import time
+import traceback
 from pathlib import Path
 
 import httpx
 
+from sandboxd.config.settings import COMMON_HASH_EXCLUDES, settings
 from sandboxd.dataclasses.NodeManifest import NodeManifest
-from sandboxd.sandbox_orchestrator.SandboxOrchestrator import (
-    SandboxOrchestrator,
-)
-
-import traceback
-
-PROJECT_ROOT = Path("/app")
-
-TARGET_DIR = (
-    PROJECT_ROOT
-    / "apps"
-    / "sandboxd"
-    / "tests"
-    / "target"
-    / "juice-shop-master"
-)
-
-AGENT_DIR = (
-    PROJECT_ROOT
-    / "apps"
-    / "sandboxd"
-    / "tests"
-    / "pentest_stub"
-)
-
-COMMON_HASH_EXCLUDES = (
-    "apps/sandboxd/tests/target",
-    ".git",
-    ".venv",
-    "__pycache__",
-)
-
-
-TARGET_NETWORK = "sandbox-target-net"
-CONTROL_NETWORK = "sandbox-control-net"
-EGRESS_NETWORK = "sandbox-egress-net"
-
-
-
-
-
-GATEWAY_LOGS_DIR = Path("/var/lib/sandboxd/gateway_logs")
-
-AGENT_TARGET_PORT = 8080
-
-
-def _target_manifest() -> NodeManifest:
-
-    return NodeManifest.create_disposable(
-        source_path=TARGET_DIR,
-        target_port=3000,
-        health_path="/rest/admin/application-version",
-        internal_networks=(TARGET_NETWORK,),
-    )
-
-
-
-AGENT_DOCKERFILE = "apps/pentest_agent_test/Dockerfile"
-
-def _agent_manifest() -> NodeManifest:
-    return NodeManifest.create_disposable(
-        source_path=PROJECT_ROOT,
-        dockerfile=AGENT_DOCKERFILE,
-        target_port=AGENT_TARGET_PORT,
-        health_path="/health",
-        internal_networks=(CONTROL_NETWORK, TARGET_NETWORK, EGRESS_NETWORK),
-        external_networks=(EGRESS_NETWORK,),
-        hash_excludes=COMMON_HASH_EXCLUDES,
-        env={
-            "SANDBOXD_GATEWAY_URL": "http://gateway:9000",
-            "TARGET_URL": "http://target:3000",
-            "OLLAMA_BASE_URL": os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11435"),
-            "OLLAMA_MODEL": "gemma4-26b-think:latest"
-        },
-    )
-
-
-GATEWAY_DOCKERFILE = "apps/sandboxd/tests/gateway/Dockerfile"
-
-def _gateway_manifest() -> NodeManifest:
-    GATEWAY_LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    return NodeManifest.create_stable(
-        source_path=PROJECT_ROOT,
-        target_port=9000,
-        health_path="/health",
-        dockerfile=GATEWAY_DOCKERFILE,
-        internal_networks=(CONTROL_NETWORK,),
-        hash_excludes=COMMON_HASH_EXCLUDES,
-        extra_options={"volumes": {str(GATEWAY_LOGS_DIR): {"bind": "/logs", "mode": "rw"}}},
-    )
-
-
-EGRESS_DOCKERFILE ="apps/sandboxd/tests/llm_egress/Dockerfile"
-
-def _llm_egress_manifest() -> NodeManifest:
-    """DEPRESSED, судя по всему"""
-    return NodeManifest.create_stable(
-        source_path=PROJECT_ROOT,
-        dockerfile=EGRESS_DOCKERFILE,
-        target_port=11434,
-        health_check_type="tcp",
-        health_path="",                    # не используется в tcp-режиме
-        internal_networks=(EGRESS_NETWORK, CONTROL_NETWORK),
-        external_networks=(EGRESS_NETWORK,),
-        hash_excludes=COMMON_HASH_EXCLUDES,
-        env={
-            "UPSTREAM_HOST": os.getenv("LLM_UPSTREAM_HOST", "host.docker.internal"),
-            "UPSTREAM_PORT": os.getenv("LLM_UPSTREAM_PORT", "11435"),
-        },
-        #extra_options={"extra_hosts": {"host.docker.internal": "172.25.0.1"}}
-    )
+from sandboxd.sandbox_orchestrator.SandboxOrchestrator import SandboxOrchestrator
 
 
 class SandboxShell(cmd.Cmd):
+    """Temporary human-facing control surface for sandboxd."""
 
     intro = (
         "sandboxd manual control shell.\n"
@@ -136,110 +28,144 @@ class SandboxShell(cmd.Cmd):
         "  restart <alias>\n"
         "  down\n"
     )
-
     prompt = "sandboxd> "
 
-    def __init__(self) -> None:
+    def __init__(self, orchestrator: SandboxOrchestrator | None = None) -> None:
         super().__init__()
-        self._orchestrator = (SandboxOrchestrator())
-        self._started = False
+        self._orchestrator = orchestrator or SandboxOrchestrator()
+
+    @property
+    def _started(self) -> bool:
+        return self._orchestrator.started
 
     def _agent_base_url(self) -> str:
         instance = self._orchestrator.get("agent")
-        ip = instance.ip(CONTROL_NETWORK)
-        return f"http://{ip}:{AGENT_TARGET_PORT}"
+        return f"http://{instance.ip(settings.control_network)}:{settings.agent_target_port}"
 
-    # --------------------------------------------------
-    # lifecycle
-    # --------------------------------------------------
+    # ------------------------------------------------------------------
+    # Manifests
+    # ------------------------------------------------------------------
 
-    def do_up(self, _arg: str,) -> None:
+    def _target_manifest(self) -> NodeManifest:
+        return NodeManifest.create_disposable(
+            source_path=settings.target_dir,
+            target_port=3000,
+            health_path="/rest/admin/application-version",
+            internal_networks=(settings.target_network,),
+        )
+
+    def _agent_manifest(self) -> NodeManifest:
+        return NodeManifest.create_disposable(
+            source_path=settings.project_root,
+            dockerfile=settings.agent_dockerfile,
+            target_port=settings.agent_target_port,
+            health_path="/health",
+            internal_networks=(
+                settings.control_network,
+                settings.target_network,
+                settings.egress_network,
+            ),
+            external_networks=(settings.egress_network,),
+            hash_excludes=COMMON_HASH_EXCLUDES,
+            env={
+                "SANDBOXD_GATEWAY_URL": f"http://gateway:{settings.gateway_port}",
+                "TARGET_URL": "http://target:3000",
+                "OLLAMA_BASE_URL": settings.ollama_base_url,
+                "OLLAMA_MODEL": settings.ollama_model,
+            },
+        )
+
+
+    def _gateway_manifest(self) -> NodeManifest:
+        settings.gateway_logs_dir.mkdir(parents=True, exist_ok=True)
+        return NodeManifest.create_stable(
+            source_path=settings.project_root,
+            target_port=settings.gateway_port,
+            health_path="/health",
+            dockerfile=settings.gateway_dockerfile,
+            internal_networks=(settings.control_network,),
+            hash_excludes=COMMON_HASH_EXCLUDES,
+            extra_options={
+                "volumes": {
+                    str(settings.gateway_logs_dir): {
+                        "bind": "/logs",
+                        "mode": "rw",
+                    }
+                }
+            },
+        )
+
+    def _llm_egress_manifest(self) -> NodeManifest:
+        """DEPRESSED"""
+        return NodeManifest.create_stable(
+            source_path=settings.project_root,
+            dockerfile=settings.llm_egress_dockerfile,
+            target_port=settings.llm_egress_port,
+            health_check_type="tcp",
+            internal_networks=(settings.egress_network, settings.control_network),
+            external_networks=(settings.egress_network,),
+            hash_excludes=COMMON_HASH_EXCLUDES,
+            env={
+                "UPSTREAM_HOST": settings.llm_upstream_host,
+                "UPSTREAM_PORT": settings.llm_upstream_port,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def do_up(self, _arg: str) -> None:
         if self._started:
-            print( "already up — use 'down' first")
+            print("already up — use 'down' first")
             return
 
         print("bringing up target + gateway + agent...")
-
         try:
             self._orchestrator.start(
-                target=_target_manifest(),
-                gateway = _gateway_manifest(),
-                agent = _agent_manifest(),
+                target=self._target_manifest(),
+                gateway=self._gateway_manifest(),
+                agent=self._agent_manifest(),
             )
-
-            self._started = True
-
-            print(
-                "up.\n"
-                "aliases: target, gateway, agent"
-            )
-
-
         except Exception as error:
             print(f"up failed: {error}")
             traceback.print_exc()
+            return
 
-            try:
-                self._orchestrator.stop()
-            except Exception:
-                pass
+        print("up.\naliases: " + ", ".join(self._orchestrator.aliases()))
 
-    def do_down(
-        self,
-        _arg: str,
-    ) -> None:
-
+    def do_down(self, _arg: str) -> None:
         if not self._started:
             print("nothing is up")
             return
 
         print("tearing down...")
-
-        self._orchestrator.stop()
-
-        self._started = False
-
+        try:
+            self._orchestrator.stop()
+        except Exception as error:
+            print(f"down failed: {error}")
+            return
         print("down.")
 
-    def do_restart(
-        self,
-        arg: str,
-    ) -> None:
-
+    def do_restart(self, arg: str) -> None:
         if not self._require_started():
             return
 
         alias = arg.strip()
-
         if not alias:
-            print(
-                "usage: restart <alias>"
-            )
+            print("usage: restart <alias>")
             return
 
-        print(
-            f"restarting '{alias}'..."
-        )
-
         try:
-
-            self._orchestrator.restart(
-                alias
-            )
-
-            print(
-                f"'{alias}' restarted."
-            )
-
+            self._orchestrator.restart(alias)
         except Exception as error:
+            print(f"restart failed: {error}")
+            return
+        print(f"'{alias}' restarted.")
 
-            print(
-                f"restart failed: {error}"
-            )
-
-    # --------------------------------------------------
-    # agent control
-    # --------------------------------------------------
+    # ------------------------------------------------------------------
+    # Agent control
+    # ------------------------------------------------------------------
 
     def do_start(self, _arg: str) -> None:
         if not self._require_started():
@@ -255,273 +181,121 @@ class SandboxShell(cmd.Cmd):
             return
         try:
             response = httpx.get(f"{self._agent_base_url()}/status", timeout=5)
+            response.raise_for_status()
             print(json.dumps(response.json(), indent=2))
-        except (httpx.HTTPError, KeyError, RuntimeError) as error:
+        except (httpx.HTTPError, KeyError, RuntimeError, ValueError) as error:
             print(f"failed to contact agent: {error}")
 
-    # --------------------------------------------------
-    # interaction
-    # --------------------------------------------------
+    # ------------------------------------------------------------------
+    # Inspection / interaction
+    # ------------------------------------------------------------------
 
-    def do_exec(
-        self,
-        arg: str,
-    ) -> None:
-
+    def do_exec(self, arg: str) -> None:
         if not self._require_started():
             return
 
-        parts = arg.split(
-            maxsplit=1
-        )
-
+        parts = arg.split(maxsplit=1)
         if len(parts) < 2:
-            print(
-                "usage: exec "
-                "<alias> <command...>"
-            )
+            print("usage: exec <alias> <command...>")
             return
 
         alias, command = parts
-
         try:
-
-            output = (
-                self._orchestrator
-                .get(alias)
-                .exec(command)
-            )
-
-            print(output)
-
-        except KeyError:
-
-            print(
-                f"unknown alias '{alias}'. "
-                "known: "
-                f"{', '.join(self._orchestrator.aliases())}"
-            )
-
+            print(self._orchestrator.get(alias).exec(command))
+        except KeyError as error:
+            print(str(error))
         except Exception as error:
+            print(f"exec failed: {error}")
 
-            print(
-                f"exec failed: {error}"
-            )
-
-    def do_logs(
-        self,
-        arg: str,
-    ) -> None:
-
+    def do_logs(self, arg: str) -> None:
         if not self._require_started():
             return
 
         parts = arg.split()
-
         if not parts:
-            print(
-                "usage: logs <alias> [tail]"
-            )
+            print("usage: logs <alias> [tail]")
             return
 
-        alias = parts[0]
-
-        tail = (
-            int(parts[1])
-            if len(parts) > 1
-            else 100
-        )
+        try:
+            tail = int(parts[1]) if len(parts) > 1 else 100
+            if tail < 1:
+                raise ValueError
+        except ValueError:
+            print("tail must be a positive integer")
+            return
 
         try:
+            print(self._orchestrator.get(parts[0]).logs(tail=tail))
+        except KeyError as error:
+            print(str(error))
 
-            print(
-                self._orchestrator
-                .get(alias)
-                .logs(tail=tail)
-            )
-
-        except KeyError:
-
-            print(
-                f"unknown alias '{alias}'"
-            )
-
-    def do_status(
-        self,
-        _arg: str,
-    ) -> None:
-
+    def do_status(self, _arg: str) -> None:
         if not self._require_started():
             return
 
-        for alias in (
-            "target",
-            "gateway",
-            "agent",
-        ):
-
+        for alias in self._orchestrator.aliases():
+            instance = self._orchestrator.get(alias)
             try:
-
-                instance = (
-                    self._orchestrator
-                    .get(alias)
-                )
-
-                state = (
-                    "running"
-                    if instance.is_running()
-                    else "stopped"
-                )
-
-                print(
-                    f"{alias}: {state}"
-                )
-
-            except KeyError:
-
-                print(
-                    f"{alias}: not spawned"
-                )
+                state = "running" if instance.is_running() else "stopped"
+            except Exception as error:
+                state = f"error: {error}"
+            print(f"{alias}: {state}")
 
         try:
             response = httpx.get(f"{self._agent_base_url()}/status", timeout=3)
-            agent_state = response.json()
-            print(f"agent activity: {agent_state['status']}")
+            response.raise_for_status()
+            print(f"agent activity: {response.json().get('status', '?')}")
         except Exception:
             pass
 
-    # --------------------------------------------------
-    # log watching
-    # --------------------------------------------------
+    # ------------------------------------------------------------------
+    # Log watching
+    # ------------------------------------------------------------------
 
-    def do_watch(
-        self,
-        _arg: str,
-    ) -> None:
-        """
-        watch — читать новые gateway JSONL-логи в realtime.
-        Ctrl-C для остановки.
-        """
-
+    def do_watch(self, _arg: str) -> None:
         if not self._require_started():
             return
 
-        print(
-            "watching gateway logs..."
-        )
-
+        print("watching gateway logs...")
         positions: dict[Path, int] = {}
-
         try:
-
             while True:
-
-                files = sorted(
-                    GATEWAY_LOGS_DIR.glob(
-                        "*.jsonl"
-                    )
-                )
-
-                for path in files:
-
-                    position = positions.get(
-                        path,
-                        0,
-                    )
-
-                    with path.open(
-                        "r",
-                        encoding="utf-8",
-                    ) as file:
-
+                for path in sorted(settings.gateway_logs_dir.glob("*.jsonl")):
+                    position = positions.get(path, 0)
+                    with path.open("r", encoding="utf-8") as file:
                         file.seek(position)
-
                         for line in file:
-
-                            line = line.strip()
-
-                            if not line:
-                                continue
-
-                            self._print_log(
-                                path,
-                                line,
-                            )
-
-                        positions[path] = (
-                            file.tell()
-                        )
-
+                            self._print_log(path, line.strip())
+                        positions[path] = file.tell()
                 time.sleep(0.25)
-
         except KeyboardInterrupt:
-
             print("\nwatch stopped.")
 
     @staticmethod
-    def _print_log(
-        path: Path,
-        raw: str,
-    ) -> None:
-
+    def _print_log(path: Path, raw: str) -> None:
+        if not raw:
+            return
         try:
-
             record = json.loads(raw)
-
-            level = record.get(
-                "level",
-                "?",
-            )
-
-            event = record.get(
-                "event",
-                "?",
-            )
-
-            message = record.get(
-                "message",
-                "",
-            )
-
-            print(
-                f"[{path.stem}] "
-                f"{level.upper()} "
-                f"{event}: "
-                f"{message}"
-            )
-
         except json.JSONDecodeError:
+            print(f"[{path.stem}] {raw}")
+            return
 
-            print(
-                f"[{path.stem}] {raw}"
-            )
+        print(
+            f"[{path.stem}] {str(record.get('level', '?')).upper()} "
+            f"{record.get('event', '?')}: {record.get('message', '')}"
+        )
 
-    # --------------------------------------------------
-    # housekeeping
-    # --------------------------------------------------
-
-    def _require_started(
-        self,
-    ) -> bool:
-
+    def _require_started(self) -> bool:
         if not self._started:
-            print(
-                "nothing is up — run 'up' first"
-            )
+            print("nothing is up — run 'up' first")
             return False
-
         return True
 
-    def do_exit(
-        self,
-        _arg: str,
-    ) -> bool:
-
+    def do_exit(self, _arg: str) -> bool:
         if self._started:
             self.do_down(_arg)
-
         print("bye.")
-
         return True
 
     do_quit = do_exit
