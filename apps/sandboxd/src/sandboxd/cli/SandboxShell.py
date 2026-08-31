@@ -66,7 +66,7 @@ def _target_manifest() -> NodeManifest:
 
 
 
-AGENT_DOCKERFILE = "apps/pentest_agent/Dockerfile"
+AGENT_DOCKERFILE = "apps/pentest_agent_test/Dockerfile"
 
 def _agent_manifest() -> NodeManifest:
     return NodeManifest.create_disposable(
@@ -74,12 +74,13 @@ def _agent_manifest() -> NodeManifest:
         dockerfile=AGENT_DOCKERFILE,
         target_port=AGENT_TARGET_PORT,
         health_path="/health",
-        internal_networks=(CONTROL_NETWORK, TARGET_NETWORK),
+        internal_networks=(CONTROL_NETWORK, TARGET_NETWORK, EGRESS_NETWORK),
+        external_networks=(EGRESS_NETWORK,),
         hash_excludes=COMMON_HASH_EXCLUDES,
         env={
             "SANDBOXD_GATEWAY_URL": "http://gateway:9000",
             "TARGET_URL": "http://target:3000",
-            "OLLAMA_BASE_URL": "http://llm-egress:11434",
+            "OLLAMA_BASE_URL": os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11435"),
             "OLLAMA_MODEL": "gemma4-26b-think:latest"
         },
     )
@@ -103,6 +104,7 @@ def _gateway_manifest() -> NodeManifest:
 EGRESS_DOCKERFILE ="apps/sandboxd/tests/llm_egress/Dockerfile"
 
 def _llm_egress_manifest() -> NodeManifest:
+    """DEPRESSED, судя по всему"""
     return NodeManifest.create_stable(
         source_path=PROJECT_ROOT,
         dockerfile=EGRESS_DOCKERFILE,
@@ -113,8 +115,8 @@ def _llm_egress_manifest() -> NodeManifest:
         external_networks=(EGRESS_NETWORK,),
         hash_excludes=COMMON_HASH_EXCLUDES,
         env={
-            "UPSTREAM_HOST": "172.25.0.1",
-            "UPSTREAM_PORT": os.getenv("LLM_UPSTREAM_PORT", "11434"),
+            "UPSTREAM_HOST": os.getenv("LLM_UPSTREAM_HOST", "host.docker.internal"),
+            "UPSTREAM_PORT": os.getenv("LLM_UPSTREAM_PORT", "11435"),
         },
         #extra_options={"extra_hosts": {"host.docker.internal": "172.25.0.1"}}
     )
@@ -156,13 +158,12 @@ class SandboxShell(cmd.Cmd):
             print( "already up — use 'down' first")
             return
 
-        print("bringing up target + gateway + llm_egress + agent...")
+        print("bringing up target + gateway + agent...")
 
         try:
             self._orchestrator.start(
                 target=_target_manifest(),
                 gateway = _gateway_manifest(),
-                llm_egress = _llm_egress_manifest(),
                 agent = _agent_manifest(),
             )
 
@@ -356,7 +357,6 @@ class SandboxShell(cmd.Cmd):
         for alias in (
             "target",
             "gateway",
-            "llm_egress"
             "agent",
         ):
 

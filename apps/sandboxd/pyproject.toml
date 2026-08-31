@@ -13,6 +13,7 @@ dependencies = [
     "setuptools>=84.0.0",
     "pytest>=9.1.1",
     "uvicorn>=0.52.4",
+    "sqids>=0.5.2",
 ]
 
 [project.scripts]
