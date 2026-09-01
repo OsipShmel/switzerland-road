@@ -41,6 +41,7 @@ ScanStatus = Literal[
     "completed",
     "failed",
 ]
+SemgrepConfig = Literal["p/sql-injection", "p/default", "auto"]
 PipelineRunner = Callable[..., VlsRegistry]
 RegistryPublisher = Callable[[list[dict[str, Any]]], Awaitable[None]]
 SandboxDispatcher = Callable[[Path, VlsRegistry], Awaitable[None]]
@@ -59,6 +60,7 @@ class ScanSubmission(BaseModel):
 
     repository_url: AnyHttpUrl = Field(alias="repositoryUrl")
     correlation_enabled: bool = Field(alias="correlationEnabled")
+    semgrep_config: SemgrepConfig | None = Field(default=None, alias="semgrepConfig")
 
     @field_validator("repository_url")
     @classmethod
@@ -83,6 +85,7 @@ class ScanReceipt(BaseModel):
     status: ScanStatus = "accepted"
     repository_url: str = Field(alias="repositoryUrl")
     correlation_enabled: bool = Field(alias="correlationEnabled")
+    semgrep_config: str = Field(alias="semgrepConfig")
     finding_count: int | None = Field(default=None, alias="findingCount")
     error: str | None = None
 
@@ -94,12 +97,17 @@ class SecurityGateInbox:
         self._submissions: dict[str, ScanReceipt] = {}
         self._registries: dict[str, list[dict[str, Any]]] = {}
 
-    def accept(self, submission: ScanSubmission) -> ScanReceipt:
+    def accept(
+        self,
+        submission: ScanSubmission,
+        default_semgrep_config: str = "p/sql-injection",
+    ) -> ScanReceipt:
         scan_id = str(uuid4())
         receipt = ScanReceipt(
             scan_id=scan_id,
             repository_url=str(submission.repository_url),
             correlation_enabled=submission.correlation_enabled,
+            semgrep_config=submission.semgrep_config or default_semgrep_config,
         )
         self._submissions[scan_id] = receipt
         return receipt
@@ -413,8 +421,8 @@ class SecurityGateService:
                 scan_id,
                 {
                     "type": "progress",
-                    "stage": "SAST / DAST",
-                    "details": "Запущен анализ репозитория и сборка VLS Registry",
+                    "stage": "SAST",
+                    "details": f"Semgrep запущен с конфигом {receipt.semgrep_config}",
                     "progress": 25,
                 },
             )
@@ -423,7 +431,7 @@ class SecurityGateService:
                 repository_dir,
                 correlation_enabled=receipt.correlation_enabled,
                 logs_dir=logs_dir,
-                semgrep_config=self.semgrep_config,
+                semgrep_config=receipt.semgrep_config,
                 semgrep_timeout=self.semgrep_timeout,
             )
             records = registry.to_records()
@@ -563,7 +571,7 @@ async def submit_scan(
                 detail="another scan is already running",
             )
 
-    receipt = service.inbox.accept(submission)
+    receipt = service.inbox.accept(submission, service.semgrep_config)
     service.event_broker.activate(receipt.scan_id)
     await service.event_broker.publish(
         receipt.scan_id,

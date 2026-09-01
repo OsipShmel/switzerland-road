@@ -93,6 +93,7 @@ class SecurityGateTests(unittest.TestCase):
             json={
                 "repositoryUrl": "https://github.com/juice-shop/juice-shop",
                 "correlationEnabled": True,
+                "semgrepConfig": "p/default",
             },
         )
 
@@ -100,6 +101,7 @@ class SecurityGateTests(unittest.TestCase):
         receipt = response.json()
         self.assertEqual(receipt["status"], "accepted")
         self.assertTrue(receipt["scanId"])
+        self.assertEqual(receipt["semgrepConfig"], "p/default")
 
         stored = self.client.get(f"/api/security-gate/scans/{receipt['scanId']}")
         self.assertEqual(stored.status_code, 200)
@@ -110,7 +112,7 @@ class SecurityGateTests(unittest.TestCase):
         self.assertEqual(len(self.pipeline.calls), 1)
         _target_dir, pipeline_options = self.pipeline.calls[0]
         self.assertTrue(pipeline_options["correlation_enabled"])
-        self.assertEqual(pipeline_options["semgrep_config"], "tests/semgrep.yml")
+        self.assertEqual(pipeline_options["semgrep_config"], "p/default")
         self.assertEqual(self.published, [[{"id": "test-vls"}]])
         self.assertEqual(len(self.dispatched), 1)
 
@@ -161,6 +163,10 @@ class SecurityGateTests(unittest.TestCase):
         self.assertEqual(stored.json()["status"], "failed")
         self.assertEqual(stored.json()["error"], "semgrep failed")
         self.assertEqual(
+            self.pipeline.calls[0][1]["semgrep_config"],
+            "tests/semgrep.yml",
+        )
+        self.assertEqual(
             self.client.get(f"/api/security-gate/scans/{scan_id}/registry").status_code,
             409,
         )
@@ -190,6 +196,17 @@ class SecurityGateTests(unittest.TestCase):
             json={
                 "repositoryUrl": "git@github.com:team/project.git",
                 "correlationEnabled": False,
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+
+    def test_rejects_unapproved_semgrep_config(self) -> None:
+        response = self.client.post(
+            "/api/security-gate/scans",
+            json={
+                "repositoryUrl": "https://github.com/team/project",
+                "correlationEnabled": False,
+                "semgrepConfig": "https://example.com/rules.yml",
             },
         )
         self.assertEqual(response.status_code, 422)
@@ -225,6 +242,43 @@ class SecurityGateCorsTests(unittest.TestCase):
             response.headers["access-control-allow-origin"],
             "http://127.0.0.1:5173",
         )
+
+    def test_vite_fallback_port_is_allowed(self) -> None:
+        from sandbox_supervisor.main import app
+
+        client = TestClient(app)
+        response = client.options(
+            "/api/security-gate/scans",
+            headers={
+                "Origin": "http://127.0.0.1:5174",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        client.close()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"],
+            "http://127.0.0.1:5174",
+        )
+
+    def test_external_frontend_origin_is_not_allowed(self) -> None:
+        from sandbox_supervisor.main import app
+
+        client = TestClient(app)
+        response = client.options(
+            "/api/security-gate/scans",
+            headers={
+                "Origin": "http://example.com:5174",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        client.close()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("access-control-allow-origin", response.headers)
 
 
 if __name__ == "__main__":

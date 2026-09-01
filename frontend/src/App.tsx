@@ -11,6 +11,7 @@ import { securityGateClient } from "./services/securityGate";
 import type {
   CorrelationMode,
   ScanConfiguration,
+  SemgrepProfile,
   Severity,
   VulnerabilitySummary,
 } from "./types";
@@ -19,6 +20,7 @@ type Phase =
   | "idle"
   | "repository"
   | "mode"
+  | "semgrep"
   | "submitting"
   | "running"
   | "complete"
@@ -29,6 +31,7 @@ type MessageRole = "assistant" | "user" | "system";
 type MessagePayload =
   | { kind: "text"; text: string }
   | { kind: "mode"; repositoryUrl: string }
+  | { kind: "semgrep" }
   | {
       kind: "configuration";
       configuration: ScanConfiguration;
@@ -58,6 +61,12 @@ const INITIAL_MESSAGE: ChatMessage = {
 const MODE_LABELS: Record<CorrelationMode, string> = {
   correlated: "С корреляцией · тестовая функция",
   separate: "Без корреляции · DAST отдельно",
+};
+
+const SEMGREP_LABELS: Record<SemgrepProfile, string> = {
+  "sql-injection": "SQL Injection · p/sql-injection",
+  default: "Базовый набор · p/default",
+  auto: "Автовыбор правил · auto",
 };
 
 const SEVERITY_LABELS: Record<Severity, string> = {
@@ -101,6 +110,8 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [repositoryUrl, setRepositoryUrl] = useState("");
+  const [correlationMode, setCorrelationMode] =
+    useState<CorrelationMode | null>(null);
   const [findings, setFindings] = useState<VulnerabilitySummary[]>([]);
 
   const nextMessageId = useRef(2);
@@ -146,24 +157,43 @@ function App() {
     ]);
     setInput("");
     setRepositoryUrl("");
+    setCorrelationMode(null);
     setFindings([]);
     findingsRef.current = [];
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
   const chooseMode = useCallback(
-    async (mode: CorrelationMode, showSelection = true) => {
+    (mode: CorrelationMode, showSelection = true) => {
       if (phase !== "mode") return;
-
-      const nextConfiguration: ScanConfiguration = {
-        repositoryUrl,
-        correlationMode: mode,
-      };
       if (showSelection) {
         appendMessage({
           role: "user",
           kind: "text",
           text: MODE_LABELS[mode],
+        });
+      }
+      setCorrelationMode(mode);
+      setPhase("semgrep");
+      appendMessage({ role: "assistant", kind: "semgrep" });
+    },
+    [appendMessage, phase],
+  );
+
+  const chooseSemgrep = useCallback(
+    async (semgrepProfile: SemgrepProfile, showSelection = true) => {
+      if (phase !== "semgrep" || correlationMode === null) return;
+
+      const nextConfiguration: ScanConfiguration = {
+        repositoryUrl,
+        correlationMode,
+        semgrepProfile,
+      };
+      if (showSelection) {
+        appendMessage({
+          role: "user",
+          kind: "text",
+          text: SEMGREP_LABELS[semgrepProfile],
         });
       }
       setPhase("submitting");
@@ -240,7 +270,7 @@ function App() {
       } catch (error) {
         if (currentSubmission !== submissionVersion.current) return;
 
-        setPhase("mode");
+        setPhase("semgrep");
         appendMessage({
           role: "assistant",
           kind: "text",
@@ -251,7 +281,7 @@ function App() {
         });
       }
     },
-    [appendMessage, phase, repositoryUrl],
+    [appendMessage, correlationMode, phase, repositoryUrl],
   );
 
   const processInput = useCallback(
@@ -281,6 +311,7 @@ function App() {
         setFindings([]);
         findingsRef.current = [];
         setRepositoryUrl("");
+        setCorrelationMode(null);
         setPhase("repository");
         appendMessage({
           role: "assistant",
@@ -326,6 +357,27 @@ function App() {
         return;
       }
 
+      if (phase === "semgrep") {
+        if (value === "1" || value === "/sql-injection") {
+          chooseSemgrep("sql-injection", false);
+          return;
+        }
+        if (value === "2" || value === "/default") {
+          chooseSemgrep("default", false);
+          return;
+        }
+        if (value === "3" || value === "/auto") {
+          chooseSemgrep("auto", false);
+          return;
+        }
+        appendMessage({
+          role: "assistant",
+          kind: "text",
+          text: "Выберите профиль Semgrep кнопкой ниже или отправьте 1, 2 либо 3.",
+        });
+        return;
+      }
+
       if (phase === "running") {
         appendMessage({
           role: "assistant",
@@ -341,7 +393,7 @@ function App() {
         text: "Не понял сообщение. Введите /start для новой проверки или /help для списка команд.",
       });
     },
-    [appendMessage, chooseMode, phase, resetChat],
+    [appendMessage, chooseMode, chooseSemgrep, phase, resetChat],
   );
 
   const handleSubmit = (event: FormEvent) => {
@@ -396,6 +448,7 @@ function App() {
               message={message}
               phase={phase}
               onModeSelect={chooseMode}
+              onSemgrepSelect={chooseSemgrep}
             />
           ))}
 
@@ -465,12 +518,14 @@ interface MessageBubbleProps {
   message: ChatMessage;
   phase: Phase;
   onModeSelect: (mode: CorrelationMode) => void;
+  onSemgrepSelect: (profile: SemgrepProfile) => void;
 }
 
 function MessageBubble({
   message,
   phase,
   onModeSelect,
+  onSemgrepSelect,
 }: MessageBubbleProps) {
   return (
     <article className={`message message--${message.role}`}>
@@ -491,6 +546,12 @@ function MessageBubble({
               repositoryUrl={message.repositoryUrl}
               disabled={phase !== "mode"}
               onSelect={onModeSelect}
+            />
+          )}
+          {message.kind === "semgrep" && (
+            <SemgrepSelection
+              disabled={phase !== "semgrep"}
+              onSelect={onSemgrepSelect}
             />
           )}
           {message.kind === "configuration" && (
@@ -561,6 +622,58 @@ function ModeSelection({
   );
 }
 
+function SemgrepSelection({
+  disabled,
+  onSelect,
+}: {
+  disabled: boolean;
+  onSelect: (profile: SemgrepProfile) => void;
+}) {
+  return (
+    <div className="mode-selection">
+      <p>Выберите набор правил Semgrep:</p>
+      <div className="mode-options">
+        <button
+          type="button"
+          className="mode-option mode-option--accent"
+          disabled={disabled}
+          onClick={() => onSelect("sql-injection")}
+        >
+          <span className="mode-number">01</span>
+          <span className="mode-copy">
+            <strong>SQL Injection</strong>
+            <small>Точечная проверка · p/sql-injection</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          className="mode-option"
+          disabled={disabled}
+          onClick={() => onSelect("default")}
+        >
+          <span className="mode-number">02</span>
+          <span className="mode-copy">
+            <strong>Базовый набор</strong>
+            <small>Более широкий анализ · p/default</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          className="mode-option"
+          disabled={disabled}
+          onClick={() => onSelect("auto")}
+        >
+          <span className="mode-number">03</span>
+          <span className="mode-copy">
+            <strong>Автовыбор правил</strong>
+            <small>Правила по языкам проекта · auto</small>
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConfigurationCard({
   configuration,
   scanId,
@@ -585,6 +698,10 @@ function ConfigurationCard({
         <div>
           <dt>Режим</dt>
           <dd>{MODE_LABELS[configuration.correlationMode]}</dd>
+        </div>
+        <div>
+          <dt>Semgrep</dt>
+          <dd>{SEMGREP_LABELS[configuration.semgrepProfile]}</dd>
         </div>
         <div>
           <dt>Scan ID</dt>

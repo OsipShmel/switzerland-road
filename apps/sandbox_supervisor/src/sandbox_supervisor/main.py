@@ -21,9 +21,17 @@ def _frontend_origins() -> list[str]:
     return [origin.strip() for origin in configured.split(",") if origin.strip()]
 
 
+def _frontend_origin_regex() -> str:
+    return os.getenv(
+        "FRONTEND_ORIGIN_REGEX",
+        r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(),
+    allow_origin_regex=_frontend_origin_regex(),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],

@@ -1,8 +1,10 @@
 export type CorrelationMode = "correlated" | "separate";
+export type SemgrepProfile = "sql-injection" | "default" | "auto";
 
 export interface ScanConfiguration {
   repositoryUrl: string;
   correlationMode: CorrelationMode;
+  semgrepProfile: SemgrepProfile;
 }
 
 export type Severity = "critical" | "high" | "medium" | "low";

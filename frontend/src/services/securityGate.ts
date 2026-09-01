@@ -19,6 +19,7 @@ export interface ScanReceipt {
     | "failed";
   repositoryUrl: string;
   correlationEnabled: boolean;
+  semgrepConfig: "p/sql-injection" | "p/default" | "auto";
   findingCount?: number;
   error?: string;
 }
@@ -26,6 +27,12 @@ export interface ScanReceipt {
 const SECURITY_GATE_URL = (
   import.meta.env.VITE_SECURITY_GATE_URL ?? "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
+
+const SEMGREP_CONFIGS = {
+  "sql-injection": "p/sql-injection",
+  default: "p/default",
+  auto: "auto",
+} as const;
 
 export const securityGateClient: SecurityGateClient = {
   async startScan(configuration) {
@@ -35,6 +42,7 @@ export const securityGateClient: SecurityGateClient = {
       body: JSON.stringify({
         repositoryUrl: configuration.repositoryUrl,
         correlationEnabled: configuration.correlationMode === "correlated",
+        semgrepConfig: SEMGREP_CONFIGS[configuration.semgrepProfile],
       }),
     });
 
