@@ -8,7 +8,7 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
-
+.vscode/
 # Local History for Visual Studio Code
 .history/
 
@@ -210,4 +210,14 @@ cython_debug/
 # uv
 .uv_cache/
 
+# output
+/output/
 
+/logs/
+
+/tests/
+
+# frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/*.tsbuildinfo

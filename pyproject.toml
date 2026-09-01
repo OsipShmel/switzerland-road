@@ -8,6 +8,7 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
-    "apps/pentest_agent",
-    "apps/data_enricher",
+    "apps/*",
+    "packages/*",
 ]
+#exclude = ["apps/sandbox_supervisor"]

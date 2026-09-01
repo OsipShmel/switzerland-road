@@ -1,0 +1,36 @@
+from .models import (
+    VLS,
+    VLSStatus,
+    VLSVerdict,
+    ConfirmedBy,
+    DastReport,
+    DastVerificationStep,
+    EndpointParameter,
+    EndpointReference,
+    InstrumentReport,
+    PentestReport,
+    PentestVerificationStep,
+    SastBlock,
+    VerificationHistory,
+    VerdictOutput,
+)
+
+from .registry import VlsRegistry
+
+__all__ = [
+    "VLS",
+    "VLSStatus",
+    "VLSVerdict",
+    "ConfirmedBy",
+    "DastReport",
+    "DastVerificationStep",
+    "EndpointParameter",
+    "EndpointReference",
+    "InstrumentReport",
+    "PentestReport",
+    "PentestVerificationStep",
+    "SastBlock",
+    "VerificationHistory",
+    "VerdictOutput",
+    "VlsRegistry",
+]

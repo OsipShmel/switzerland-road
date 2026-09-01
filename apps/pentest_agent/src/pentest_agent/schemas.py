@@ -1,0 +1,44 @@
+from typing import Literal
+from pydantic import BaseModel, Field
+
+
+class AgentActionSchema(BaseModel):
+    """Схема промежуточного шага ИИ. Формат мышления."""
+    action: Literal["sqli_check", "xss_check", "path_traversal_check", "final_verdict"] = Field(
+        description="Название вызываемого ИБ-инструмента или флаг завершения работы 'final_verdict'"
+    )
+    payload: str = Field(
+        description="Конкретная строка-пейлоад для атаки. Если action=='final_verdict', поле должно быть пустым."
+    )
+    reasoning: str = Field(
+        description="Краткое логическое объяснение шага для SandboxD."
+    )
+
+
+class SandboxdReportContent(BaseModel):
+    """Человекочитаемый результат проверки согласно ТЗ."""
+    action_taken: str = Field(
+        description="Человекочитаемое описание выполненных действий")
+    result_details: str = Field(
+        description="Детальный технический отчет о ходе проверки")
+
+
+class SandboxdProofContent(BaseModel):
+    """Структурированное описание доказательства."""
+    type: Literal["none", "flag"] = Field(
+        description="Тип доказательства: 'flag' или 'none'")
+    details: str = Field(
+        description="Текстовое доказательство: сработавший эксплойт или значение флага")
+
+
+class FinalReportSchema(BaseModel):
+    """
+    КОНТРАКТ ДЛЯ МЕТОДА submit_check_result.
+    """
+    verdict: Literal["confirmed", "unconfirmed"] = Field(
+        description="confirmed — получено доказательство эксплуатации. unconfirmed — проверка не подтвердила баг."
+    )
+    report: SandboxdReportContent = Field(
+        description="Человекочитаемый результат проверки.")
+    proof: SandboxdProofContent = Field(
+        description="Структурированное описание доказательства.")
