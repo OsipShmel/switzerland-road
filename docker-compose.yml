@@ -21,8 +21,7 @@ services:
       dockerfile: Dockerfile
     init: true
 
-    # DinD compatibility baseline.
-    # cgroup namespace is intentionally private instead of host.
+
     privileged: true
     cgroup: host
 
@@ -65,7 +64,7 @@ services:
       OPENAI_UPSTREAM_PORT: ${OPENAI_UPSTREAM_PORT:-443}
       OPENAI_UPSTREAM_PATH: ${OPENAI_UPSTREAM_PATH:-/api}
       OPENAI_MODEL: ${OPENAI_MODEL:-Qwen3.8-27B}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-bc7171f21d424e32a2eb498a8cd7fb34}
 
       SANDBOXD_HASH_EXCLUDES: ${SANDBOXD_HASH_EXCLUDES:-sandboxd/tests/target,.git,.venv,__pycache__}
 
@@ -90,8 +89,7 @@ services:
       - frontend_node_modules:/app/node_modules
     depends_on:
       - supervisor
-    # Vite config in the repo binds 127.0.0.1 by default; the CLI override
-    # above makes it reachable through the published Docker port.
+
 
 networks:
   sandbox_uplink:
