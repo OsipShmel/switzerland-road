@@ -1,0 +1,102 @@
+services:
+  supervisor:
+    build:
+      context: .
+      dockerfile: apps/sandbox_supervisor/Dockerfile
+    environment:
+      SANDBOXD_URL: http://sandboxd:8001
+      SECURITY_GATE_ALLOWED_REPOSITORY_HOSTS: ${SECURITY_GATE_ALLOWED_REPOSITORY_HOSTS:-github.com,gitlab.com,bitbucket.org}
+      SECURITY_GATE_SEMGREP_CONFIG: ${SECURITY_GATE_SEMGREP_CONFIG:-p/sql-injection}
+      SUPERVISOR_LOGS_DIR: /var/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - sandbox_uplink
+    depends_on:
+      - sandboxd
+
+  sandboxd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+
+    # DinD compatibility baseline.
+    # cgroup namespace is intentionally private instead of host.
+    privileged: true
+    cgroup: host
+
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+
+    environment:
+      SANDBOXD_PROJECT_ROOT: ${SANDBOXD_PROJECT_ROOT:-/app}
+      SANDBOXD_GATEWAY_LOGS_DIR: ${SANDBOXD_GATEWAY_LOGS_DIR:-/var/lib/sandboxd/gateway_logs}
+      SANDBOXD_TARGET_DIR: ${SANDBOXD_TARGET_DIR:-/app/apps/sandboxd/tests/target_app/juice-shop-master}
+      SANDBOXD_AGENT_DIR: ${SANDBOXD_AGENT_DIR:-/app/apps/sandboxd/tests/pentest_stub}
+
+      SANDBOXD_TARGET_DOCKERFILE: ${SANDBOXD_TARGET_DOCKERFILE:-Dockerfile}
+      SANDBOXD_AGENT_DOCKERFILE: ${SANDBOXD_AGENT_DOCKERFILE:-apps/pentest_agent/Dockerfile}
+      SANDBOXD_GATEWAY_DOCKERFILE: ${SANDBOXD_GATEWAY_DOCKERFILE:-apps/sandboxd/tests/gateway/Dockerfile}
+      SANDBOXD_LLM_EGRESS_DOCKERFILE: ${SANDBOXD_LLM_EGRESS_DOCKERFILE:-apps/sandboxd/tests/llm_egress/Dockerfile}
+
+      SANDBOXD_TARGET_NETWORK: ${SANDBOXD_TARGET_NETWORK:-sandbox-target-net}
+      SANDBOXD_CONTROL_NETWORK: ${SANDBOXD_CONTROL_NETWORK:-sandbox-control-net}
+      SANDBOXD_EGRESS_NETWORK: ${SANDBOXD_EGRESS_NETWORK:-sandbox-egress-net}
+      SANDBOXD_UPLINK_NETWORK: ${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}
+
+      SANDBOXD_SUPERVISOR_URL: ${SANDBOXD_SUPERVISOR_URL:-http://supervisor:8000}
+      SANDBOXD_SUPERVISOR_TIMEOUT: ${SANDBOXD_SUPERVISOR_TIMEOUT:-10}
+      SANDBOXD_API_HOST: ${SANDBOXD_API_HOST:-0.0.0.0}
+      SANDBOXD_API_PORT: ${SANDBOXD_API_PORT:-8001}
+      SANDBOXD_CONTROL_SOCKET: ${SANDBOXD_CONTROL_SOCKET:-/run/sandboxd/control.sock}
+      SANDBOXD_STATE_DIR: ${SANDBOXD_STATE_DIR:-/var/lib/sandboxd/state}
+
+      SANDBOXD_AGENT_PORT: ${SANDBOXD_AGENT_PORT:-8080}
+      SANDBOXD_GATEWAY_PORT: ${SANDBOXD_GATEWAY_PORT:-9000}
+      SANDBOXD_LLM_EGRESS_PORT: ${SANDBOXD_LLM_EGRESS_PORT:-11434}
+
+      SANDBOXD_LLM_BRIDGE: ${SANDBOXD_LLM_BRIDGE:-1}
+      SANDBOXD_EGRESS_DELAY_MS: ${SANDBOXD_EGRESS_DELAY_MS:-100}
+
+      OPENAI_UPSTREAM_HOST: ${OPENAI_UPSTREAM_HOST:-deepcode.ci.nsu.ru}
+      OPENAI_UPSTREAM_PORT: ${OPENAI_UPSTREAM_PORT:-443}
+      OPENAI_UPSTREAM_PATH: ${OPENAI_UPSTREAM_PATH:-/api}
+      OPENAI_MODEL: ${OPENAI_MODEL:-Qwen3.8-27B}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      SANDBOXD_HASH_EXCLUDES: ${SANDBOXD_HASH_EXCLUDES:-sandboxd/tests/target,.git,.venv,__pycache__}
+
+    stdin_open: true
+    tty: true
+    stop_grace_period: 10s
+
+    networks:
+      - sandbox_uplink
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_SECURITY_GATE_URL: ${VITE_SECURITY_GATE_URL:-http://127.0.0.1:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - supervisor
+    # Vite config in the repo binds 127.0.0.1 by default; the CLI override
+    # above makes it reachable through the published Docker port.
+
+networks:
+  sandbox_uplink:
+    name: ${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}
+    driver: bridge
+
+volumes:
+  frontend_node_modules:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from typing import Callable
 
@@ -8,6 +9,8 @@ from sandboxd.interfaces.ContainerRuntime import ContainerRuntime
 from sandboxd.sandbox_orchestrator.node_runtime.NodeInstance import NodeInstance
 from sandboxd.sandbox_orchestrator.node_runtime.NodeRunner import NodeRunner
 from sandboxdapi.AgentInteraction import LogLevel
+
+from sandboxd.flag_injector import DO_INJECT, FlagInjector
 
 
 class SandboxOrchestrator:
@@ -28,6 +31,7 @@ class SandboxOrchestrator:
         self._instances: dict[str, NodeInstance] = {}
         self._manifests: dict[str, NodeManifest] = {}
         self._network_names: set[str] = set()
+        self._injected_flags = []  # для хранения внедрённых флагов
 
     @property
     def started(self) -> bool:
@@ -41,6 +45,9 @@ class SandboxOrchestrator:
             raise ValueError("at least one node manifest is required")
         if self.started:
             raise RuntimeError("orchestrator is already started — call stop() first")
+
+        project_path = os.environ.get("PROJECT_PATH", "./juice-shop")
+        self._injected_flags = self._inject_flags_into_project(project_path)
 
         self._validate_manifests(manifests)
         self._emit_log(
@@ -158,14 +165,10 @@ class SandboxOrchestrator:
     # Topology
     # ------------------------------------------------------------------
 
-    def _emit_log(
-        self,
-        *,
-        level: LogLevel,
-        event: str,
-        message: str,
-        metadata: dict[str, object] | None = None,
-    ) -> None:
+    def _emit_log(self, *,
+                  level: LogLevel, event: str,
+                  message: str,
+                  metadata: dict[str, object] | None = None) -> None:
         if self._on_log is None:
             return
         try:
@@ -192,6 +195,20 @@ class SandboxOrchestrator:
                     f"node {alias!r} contains duplicate networks: "
                     f"{manifest.internal_networks}"
                 )
+    @staticmethod
+    def _inject_flags_into_project(project_path: str) -> list:  # dytlhtybt akfujd
+        if not DO_INJECT:
+            print("Инжектор флагов отключён")
+            return []
+
+        print(f"Внедрение флагов в {project_path}")
+        injector = FlagInjector(project_path)
+        flags = injector.run()
+        print(f"Внедрённые флаги: {flags}")
+        return flags
+
+    def get_injected_flags(self) -> list:  # возвращает список внедренных флагов
+        return self._injected_flags
 
     @staticmethod
     def _collect_networks(
