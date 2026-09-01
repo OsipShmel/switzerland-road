@@ -1,4 +1,5 @@
-from __future__ import annotations
+from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 
@@ -10,12 +11,23 @@ from sandboxdapi.errors import SandboxdApiError
 
 def create_agent_gateway_app(gateway_state: GatewayState) -> FastAPI:
 
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        gateway_state.bind_event_loop(asyncio.get_running_loop())
+        yield
+
     app = FastAPI(
         title="sandbox-daemon agent gateway",
-        version="0.1.0")
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
     app.state.gateway_state = gateway_state
 
-    app.add_exception_handler(SandboxdApiError, sandboxd_api_error_handler)
+    app.add_exception_handler(
+        SandboxdApiError,
+        sandboxd_api_error_handler,
+    )
     app.include_router(check_session.router)
     app.include_router(flag.router)
     app.include_router(agent_log.router)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from VLSManager import router as vls_router
-from supervisor import router as supervisor_router
-from sandbox_io_manager import router as sandbox_router
+from .VLSManager import router as vls_router
+from .supervisor import router as supervisor_router
+from .sandbox_io_manager import router as sandbox_router
 
 app = FastAPI(title="Sandbox Manager API")
 
@@ -17,8 +17,9 @@ async def root():
         "message": "Sandbox Manager API",
         "endpoints": {
             "vls": "/api/vls/*",
+            "vlsregisry": "/api/vlsregistry",
             "supervisor": "/api/supervisor/*",
-            "sandbox": "/sandbox/*"
+            "sandbox": "/sandbox/*",
         }
     }
 
