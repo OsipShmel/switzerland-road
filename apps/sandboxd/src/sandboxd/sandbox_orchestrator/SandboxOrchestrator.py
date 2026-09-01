@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import Callable
 
 from sandboxd.dataclasses.NodeManifest import NodeManifest
 from sandboxd.interfaces.ContainerRuntime import ContainerRuntime
 from sandboxd.sandbox_orchestrator.node_runtime.NodeInstance import NodeInstance
 from sandboxd.sandbox_orchestrator.node_runtime.NodeRunner import NodeRunner
+from sandboxdapi.AgentInteraction import LogLevel
 
 
 class SandboxOrchestrator:
@@ -16,8 +18,13 @@ class SandboxOrchestrator:
     they must be created or removed.
     """
 
-    def __init__(self, runtime: ContainerRuntime | None = None) -> None:
-        self._runtime = runtime or NodeRunner()
+    def __init__(
+        self,
+        runtime: ContainerRuntime | None = None,
+        on_log: Callable[..., None] | None = None,
+    ) -> None:
+        self._runtime = runtime or NodeRunner(on_log=on_log)
+        self._on_log = on_log
         self._instances: dict[str, NodeInstance] = {}
         self._manifests: dict[str, NodeManifest] = {}
         self._network_names: set[str] = set()
@@ -36,6 +43,12 @@ class SandboxOrchestrator:
             raise RuntimeError("orchestrator is already started — call stop() first")
 
         self._validate_manifests(manifests)
+        self._emit_log(
+            level=LogLevel.INFO,
+            event="sandbox.startup_started",
+            message="Starting sandbox topology",
+            metadata={"nodes": list(manifests)},
+        )
         required_networks, network_internal = self._collect_networks(manifests)
 
         created_networks: set[str] = set()
@@ -58,7 +71,19 @@ class SandboxOrchestrator:
             self._instances = started_nodes
             self._manifests = dict(manifests)
             self._network_names = created_networks
-        except Exception:
+            self._emit_log(
+                level=LogLevel.INFO,
+                event="sandbox.started",
+                message="Sandbox topology started",
+                metadata={"nodes": list(self._instances)},
+            )
+        except Exception as exc:
+            self._emit_log(
+                level=LogLevel.ERROR,
+                event="sandbox.startup_failed",
+                message=str(exc),
+                metadata={"started_nodes": list(started_nodes)},
+            )
             for instance in reversed(tuple(started_nodes.values())):
                 self._runtime.down(instance.raw_access)
             for name in reversed(tuple(created_networks)):
@@ -113,6 +138,12 @@ class SandboxOrchestrator:
                 errors.append(f"network cleanup ({network_name}): {error}")
 
         if not errors:
+            self._emit_log(
+                level=LogLevel.INFO,
+                event="sandbox.stopped",
+                message="Sandbox topology stopped",
+                metadata={},
+            )
             self._instances.clear()
             self._manifests.clear()
             self._network_names.clear()
@@ -126,6 +157,26 @@ class SandboxOrchestrator:
     # ------------------------------------------------------------------
     # Topology
     # ------------------------------------------------------------------
+
+    def _emit_log(
+        self,
+        *,
+        level: LogLevel,
+        event: str,
+        message: str,
+        metadata: dict[str, object] | None = None,
+    ) -> None:
+        if self._on_log is None:
+            return
+        try:
+            self._on_log(
+                level=level,
+                event=event,
+                message=message,
+                metadata=metadata or {},
+            )
+        except Exception as exc:
+            print(f"[sandboxd] log callback failed: {exc}")
 
     @staticmethod
     def _validate_manifests(manifests: dict[str, NodeManifest]) -> None:

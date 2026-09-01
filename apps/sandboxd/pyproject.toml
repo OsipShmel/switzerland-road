@@ -14,6 +14,7 @@ dependencies = [
     "pytest>=9.1.1",
     "uvicorn>=0.52.4",
     "sqids>=0.5.2",
+    "sandboxdapi",
 ]
 
 [project.scripts]
@@ -27,3 +28,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.1.1",
 ]
+
+[tool.uv.sources]
+sandboxdapi = { workspace = true }
+vls = { workspace = true }

@@ -1,9 +1,9 @@
-FROM alpine/socat:latest
+FROM python:3.14-alpine
 
-ENV UPSTREAM_HOST=host.docker.internal
-ENV UPSTREAM_PORT=11435
+WORKDIR /srv
 
-EXPOSE 11435
-ENTRYPOINT []
-CMD sh -c "socat TCP-LISTEN:11434,fork,reuseaddr TCP:${UPSTREAM_HOST}:${UPSTREAM_PORT}"
+COPY apps/sandboxd/tests/llm_egress/proxy.py /srv/proxy.py
 
+EXPOSE 11434
+
+CMD ["python3", "/srv/proxy.py"]

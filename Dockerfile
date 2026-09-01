@@ -2,7 +2,7 @@ FROM docker:dind
 
 # RUN apk add --no-cache python3 bash git curl
 RUN apk add --no-cache python3 bash git curl socat
-#TODO!
+##TODO!
 RUN apk add --no-cache python3 bash git curl socat iproute2
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -15,7 +15,7 @@ RUN uv sync --frozen
 
 ENV PYTHONPATH=/app/apps/sandboxd/src
 
-COPY apps/sandboxd/docker-entrypoint.sh /usr/local/bin/sandboxd-entrypoint
+COPY apps/sandboxd/docker-entrypoint-openai.sh /usr/local/bin/sandboxd-entrypoint
 RUN chmod +x /usr/local/bin/sandboxd-entrypoint
 
 ENTRYPOINT ["sandboxd-entrypoint"]

@@ -60,7 +60,7 @@ class SandboxSettings:
     # ------------------------------------------------------------------
 
     target_dockerfile: str = _env("SANDBOXD_TARGET_DOCKERFILE", "Dockerfile")
-    agent_dockerfile: str = _env("SANDBOXD_AGENT_DOCKERFILE", "apps/pentest_agent_test/Dockerfile")
+    agent_dockerfile: str = _env("SANDBOXD_AGENT_DOCKERFILE", "apps/sandboxd/tests/pentest_stub/Dockerfile")
     gateway_dockerfile: str = _env("SANDBOXD_GATEWAY_DOCKERFILE", "apps/sandboxd/tests/gateway/Dockerfile")
     llm_egress_dockerfile: str = _env("SANDBOXD_LLM_EGRESS_DOCKERFILE", "apps/sandboxd/tests/llm_egress/Dockerfile")
 
@@ -71,6 +71,7 @@ class SandboxSettings:
     target_network: str = _env("SANDBOXD_TARGET_NETWORK", "sandbox-target-net")
     control_network: str = _env("SANDBOXD_CONTROL_NETWORK", "sandbox-control-net")
     egress_network: str = _env("SANDBOXD_EGRESS_NETWORK", "sandbox-egress-net")
+    uplink_network: str = _env("SANDBOXD_UPLINK_NETWORK", "sandbox-uplink-net")
 
     # ------------------------------------------------------------------
     # Ports
@@ -88,6 +89,28 @@ class SandboxSettings:
     ollama_model: str = _env("OLLAMA_MODEL", "gemma4-26b-think:latest")
     llm_upstream_host: str = _env("LLM_UPSTREAM_HOST", "host.docker.internal")
     llm_upstream_port: str = _env("LLM_UPSTREAM_PORT", "11435")
+
+    # ------------------------------------------------------------------
+    # LLM / provider egress
+    # ------------------------------------------------------------------
+
+    openai_base_url: str = _env("OPENAI_BASE_URL", "http://llm_egress:11434/v1")
+    openai_upstream_path: str = _env("OPENAI_UPSTREAM_PATH","/api",)
+    openai_model: str = _env("OPENAI_MODEL", "Qwen3.8-27B")
+    openai_upstream_host: str = _env("OPENAI_UPSTREAM_HOST", "deepcode.ci.nsu.ru")
+    openai_upstream_port: str = _env("OPENAI_UPSTREAM_PORT", "443")
+    openai_api_key: str = _env("OPENAI_API_KEY", "")
+
+    # ------------------------------------------------------------------
+    # Sandbox control-plane
+    # ------------------------------------------------------------------
+
+    supervisor_url: str = _env("SANDBOXD_SUPERVISOR_URL", "http://supervisor:8000")
+    supervisor_timeout: float = float(_env("SANDBOXD_SUPERVISOR_TIMEOUT", "10"))
+    supervisor_api_host: str = _env("SANDBOXD_API_HOST", "0.0.0.0")
+    supervisor_api_port: int = _env_int("SANDBOXD_API_PORT", 8001)
+    control_socket: Path = Path(_env("SANDBOXD_CONTROL_SOCKET", "/run/sandboxd/control.sock"))
+    state_dir: Path = Path(_env("SANDBOXD_STATE_DIR", "/var/lib/sandboxd/state"))
 
     # ------------------------------------------------------------------
     # Runtime

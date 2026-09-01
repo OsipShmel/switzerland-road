@@ -25,10 +25,9 @@ services:
       # ----------------------------------------------------------------
 
       SANDBOXD_TARGET_DOCKERFILE: "${SANDBOXD_TARGET_DOCKERFILE:-Dockerfile}"
-      SANDBOXD_AGENT_DOCKERFILE: "${SANDBOXD_AGENT_DOCKERFILE:-apps/pentest_agent_test/Dockerfile}"
+      SANDBOXD_AGENT_DOCKERFILE: "${SANDBOXD_AGENT_DOCKERFILE:-apps/pentest_agent/Dockerfile}"
       SANDBOXD_GATEWAY_DOCKERFILE: "${SANDBOXD_GATEWAY_DOCKERFILE:-apps/sandboxd/tests/gateway/Dockerfile}"
       SANDBOXD_LLM_EGRESS_DOCKERFILE: "${SANDBOXD_LLM_EGRESS_DOCKERFILE:-apps/sandboxd/tests/llm_egress/Dockerfile}"
-
       # ----------------------------------------------------------------
       # Networks
       # ----------------------------------------------------------------
@@ -36,6 +35,18 @@ services:
       SANDBOXD_TARGET_NETWORK: "${SANDBOXD_TARGET_NETWORK:-sandbox-target-net}"
       SANDBOXD_CONTROL_NETWORK: "${SANDBOXD_CONTROL_NETWORK:-sandbox-control-net}"
       SANDBOXD_EGRESS_NETWORK: "${SANDBOXD_EGRESS_NETWORK:-sandbox-egress-net}"
+      SANDBOXD_UPLINK_NETWORK: "${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}"
+
+      # ----------------------------------------------------------------
+      # Supervisor control plane
+      # ----------------------------------------------------------------
+
+      SANDBOXD_SUPERVISOR_URL: "${SANDBOXD_SUPERVISOR_URL:-http://supervisor:8000}"
+      SANDBOXD_SUPERVISOR_TIMEOUT: "${SANDBOXD_SUPERVISOR_TIMEOUT:-10}"
+      SANDBOXD_API_HOST: "${SANDBOXD_API_HOST:-0.0.0.0}"
+      SANDBOXD_API_PORT: "${SANDBOXD_API_PORT:-8001}"
+      SANDBOXD_CONTROL_SOCKET: "${SANDBOXD_CONTROL_SOCKET:-/run/sandboxd/control.sock}"
+      SANDBOXD_STATE_DIR: "${SANDBOXD_STATE_DIR:-/var/lib/sandboxd/state}"
 
       # ----------------------------------------------------------------
       # Ports
@@ -52,11 +63,11 @@ services:
       SANDBOXD_LLM_BRIDGE: "${SANDBOXD_LLM_BRIDGE:-1}"
       SANDBOXD_EGRESS_DELAY_MS: "${SANDBOXD_EGRESS_DELAY_MS:-100}"
 
-      LLM_UPSTREAM_HOST: "${LLM_UPSTREAM_HOST:-host.docker.internal}"
-      LLM_UPSTREAM_PORT: "${LLM_UPSTREAM_PORT:-11435}"
-
-      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11435}"
-      OLLAMA_MODEL: "${OLLAMA_MODEL:-gemma4-26b-think:latest}"
+      OPENAI_UPSTREAM_HOST: "${OPENAI_UPSTREAM_HOST:-deepcode.ci.nsu.ru}"
+      OPENAI_UPSTREAM_PORT: "${OPENAI_UPSTREAM_PORT:-443}"
+      OPENAI_UPSTREAM_PATH: "${OPENAI_UPSTREAM_PATH:-/api}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-Qwen3.8-27B}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-s}"
 
       # ----------------------------------------------------------------
       # Hash excludes
@@ -64,9 +75,23 @@ services:
 
       SANDBOXD_HASH_EXCLUDES: "${SANDBOXD_HASH_EXCLUDES:-sandboxd/tests/target,.git,.venv,__pycache__}"
 
-    # ports:
-    #   - "18000-18100:18000-18100"
 
     stdin_open: true
     tty: true
     stop_grace_period: 10s
+
+    volumes:
+      - sandboxd_ipc:/run/sandboxd
+      - sandboxd_state:/var/lib/sandboxd/state
+
+    networks:
+      - supervisor_uplink
+
+networks:
+  supervisor_uplink:
+    name: ${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}
+    external: true
+
+volumes:
+  sandboxd_ipc:
+  sandboxd_state:

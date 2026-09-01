@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from supervisor import Supervisor
+from .supervisor import Supervisor
 
 class SupervisorShell:
     def __init__(self, supervisor: Supervisor, prompt: str = "supervisor-sh> "):

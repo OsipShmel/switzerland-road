@@ -5,7 +5,7 @@ import socket
 import time
 import uuid
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Callable
 
 import docker
 import httpx
@@ -14,14 +14,22 @@ from docker.models.containers import Container
 
 from sandboxd.dataclasses.NodeManifest import NodeManifest
 from sandboxd.interfaces.ContainerRuntime import ContainerRuntime
+from sandboxdapi.AgentInteraction import LogLevel
 from sandboxd.sandbox_orchestrator.node_runtime.helpers import get_ip
 
 
 class NodeRunner(ContainerRuntime):
     """Docker implementation of the sandbox container runtime."""
 
-    def __init__(self, docker_client: docker.DockerClient | None = None) -> None:
+    def __init__(
+        self,
+        docker_client: docker.DockerClient | None = None,
+        on_log: Callable[..., None] | None = None,
+    ) -> None:
         self._client = docker_client or docker.from_env()
+        self._on_log = on_log
+
+
 
     # ------------------------------------------------------------------
     # Container lifecycle
@@ -116,8 +124,35 @@ class NodeRunner(ContainerRuntime):
         shutil.copytree(source_path, build_ctx, ignore=ignore)
         return build_ctx
 
+    def _emit(
+        self,
+        *,
+        level: LogLevel,
+        event: str,
+        message: str,
+        metadata: dict[str, object] | None = None,
+    ) -> None:
+        if self._on_log is None:
+            return
+        try:
+            self._on_log(
+                level=level,
+                event=event,
+                message=message,
+                metadata=metadata or {},
+            )
+        except Exception as exc:
+            # Observability must not break container lifecycle.
+            print(f"[sandboxd] log callback failed: {exc}")
+
     def _build_image(self, build_ctx: Path, *, tag: str, dockerfile: str) -> None:
         print(f"[sandboxd] building image {tag} from {build_ctx}")
+        self._emit(
+            level=LogLevel.INFO,
+            event="sandbox.node_build_started",
+            message=f"Building image {tag}",
+            metadata={"node_image": tag, "dockerfile": dockerfile},
+        )
 
         for chunk in self._client.api.build(
             path=str(build_ctx),
@@ -127,11 +162,33 @@ class NodeRunner(ContainerRuntime):
             dockerfile=dockerfile,
         ):
             if "stream" in chunk:
-                print(chunk["stream"], end="")
+                stream = str(chunk["stream"])
+                print(stream, end="")
+                self._emit(
+                    level=LogLevel.DEBUG,
+                    event="sandbox.node_build_output",
+                    message=stream.rstrip("\n"),
+                    metadata={"node_image": tag, "dockerfile": dockerfile},
+                )
             if "error" in chunk:
-                raise RuntimeError(f"Docker build failed: {chunk['error']}")
+                error = str(chunk["error"])
+                self._emit(
+                    level=LogLevel.ERROR,
+                    event="sandbox.node_build_failed",
+                    message=error,
+                    metadata={"node_image": tag, "dockerfile": dockerfile},
+                )
+                raise RuntimeError(f"Docker build failed: {error}")
 
         print(f"[sandboxd] image {tag} ready")
+        self._emit(
+            level=LogLevel.INFO,
+            event="sandbox.node_build_finished",
+            message=f"Image {tag} ready",
+            metadata={"node_image": tag, "dockerfile": dockerfile},
+        )
+
+
 
     # ------------------------------------------------------------------
     # Container configuration
@@ -162,7 +219,14 @@ class NodeRunner(ContainerRuntime):
             run_kwargs["nano_cpus"] = manifest.nano_cpus
 
         run_kwargs.update(manifest.extra_options)
-        return self._client.containers.run(**run_kwargs)
+        container = self._client.containers.run(**run_kwargs)
+        self._emit(
+            level=LogLevel.INFO,
+            event="sandbox.node_started",
+            message=f"Container {manifest.image_tag} started",
+            metadata={"container_id": container.id, "image": manifest.image_tag},
+        )
+        return container
 
     # ------------------------------------------------------------------
     # Health checks
@@ -183,6 +247,16 @@ class NodeRunner(ContainerRuntime):
         # это че за конченный рефакторинг такой?
         network = manifest.internal_networks[0]
         deadline = time.monotonic() + manifest.health_timeout
+        self._emit(
+            level=LogLevel.INFO,
+            event="sandbox.node_healthcheck_started",
+            message=f"Waiting for {container.name} to become healthy",
+            metadata={
+                "node": container.name,
+                "health_check_type": manifest.health_check_type,
+                "timeout_seconds": manifest.health_timeout,
+            },
+        )
         last_error: Exception | None = None
         last_url: str | None = None
 
@@ -200,6 +274,12 @@ class NodeRunner(ContainerRuntime):
 
                     if manifest.health_check_type == "tcp":
                         if self._tcp_probe(ip_address, manifest.target_port):
+                            self._emit(
+                                level=LogLevel.INFO,
+                                event="sandbox.node_healthy",
+                                message=f"{container.name} passed TCP healthcheck",
+                                metadata={"node": container.name, "ip": ip_address, "port": manifest.target_port},
+                            )
                             return
                         raise RuntimeError(
                             f"TCP probe to {ip_address}:{manifest.target_port} failed"
@@ -212,6 +292,12 @@ class NodeRunner(ContainerRuntime):
                     )
                     response = client.get(last_url)
                     if response.status_code == 200:
+                        self._emit(
+                            level=LogLevel.INFO,
+                            event="sandbox.node_healthy",
+                            message=f"{container.name} passed HTTP healthcheck",
+                            metadata={"node": container.name, "url": last_url},
+                        )
                         return
                     raise RuntimeError(
                         f"healthcheck returned HTTP {response.status_code}"
@@ -222,10 +308,17 @@ class NodeRunner(ContainerRuntime):
                 time.sleep(1.0)
 
         suffix = f". Last error: {last_error}" if last_error else ""
-        raise TimeoutError(
+        message = (
             f"service did not become healthy in time for container "
             f"{container.name}. URL: {last_url}{suffix}"
         )
+        self._emit(
+            level=LogLevel.ERROR,
+            event="sandbox.node_healthcheck_failed",
+            message=message,
+            metadata={"node": container.name, "url": last_url},
+        )
+        raise TimeoutError(message)
 
     @staticmethod
     def _tcp_probe(host: str, port: int, timeout: float = 1.0, ) -> bool:
@@ -239,3 +332,5 @@ class NodeRunner(ContainerRuntime):
     @staticmethod
     def _cleanup_build_context(build_ctx: Path) -> None:
         shutil.rmtree(build_ctx, ignore_errors=True)
+
+

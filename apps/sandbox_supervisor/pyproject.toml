@@ -1,0 +1,32 @@
+[project]
+name = "sandbox-supervisor"
+version = "0.1.0"
+description = "Supervisor service for sandbox target delivery and VLS registry management"
+readme = "README.md"
+requires-python = ">=3.14"
+
+dependencies = [
+    "aiofiles>=24.1.0",
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.13",
+    "uvicorn>=0.52.4",
+    "vls",
+    "sandboxdapi",
+]
+
+[project.scripts]
+sandbox-supervisor = "sandbox_supervisor.main:main"
+
+[tool.uv.sources]
+vls = { workspace = true }
+sandboxdapi = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.0,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

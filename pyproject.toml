@@ -11,4 +11,4 @@ members = [
     "apps/*",
     "packages/*",
 ]
-exclude = ["apps/sandbox_supervisor"]
+#exclude = ["apps/sandbox_supervisor"]

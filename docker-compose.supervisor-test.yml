@@ -1,0 +1,19 @@
+services:
+  supervisor:
+    build:
+      context: .
+      dockerfile: apps/sandbox_supervisor/Dockerfile
+
+    environment:
+      SANDBOXD_URL: http://sandboxd:8001
+
+    ports:
+      - "8000:8000"
+
+    networks:
+      - sandbox_uplink
+
+networks:
+  sandbox_uplink:
+    external: true
+    name: ${SANDBOXD_UPLINK_NETWORK:-sandbox-uplink-net}

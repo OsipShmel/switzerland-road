@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from dataclasses import dataclass
@@ -7,12 +8,14 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
+from sandboxdapi import AgentLog
 from vls import VLS, VLSStatus, VLSVerdict, ConfirmedBy, VlsRegistry
 from sandboxdapi.errors import (
     SessionAlreadyActive, NoActiveSession, ResultNotSubmitted,
     FlagNotConfirmed, NoUncheckedVulnerabilities,
 )
 
+from sandboxd.control_plane.gateway_client import SandboxdControlClient
 
 @dataclass
 class ActiveCheckSession:
@@ -35,6 +38,10 @@ class GatewayState:
         self._on_flag_confirmed = on_flag_confirmed or (lambda: None)
         self._logs_dir = logs_dir
         self._logs_dir.mkdir(parents=True, exist_ok=True)
+
+        self._control_client = SandboxdControlClient(socket_path="/run/sandboxd/control.sock")
+
+        self._event_loop: asyncio.AbstractEventLoop | None = None
 
 
     def load_vulnerabilities(self, vls_registry: VlsRegistry) -> None:
@@ -116,6 +123,9 @@ class GatewayState:
         self._is_target_discredited = True
         self._on_flag_confirmed()
 
+    def bind_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._event_loop = loop
+
     # --- logging ---
 
     def log(self, level: str, event: str, message: str, metadata: dict, explicit_context: str | None) -> None:
@@ -127,12 +137,61 @@ class GatewayState:
             return f"check_session_{self.active_check.session_id}"
         return "global"
 
-    def _log(self, context: str, record: dict) -> None:
-        record = {"ts": time.time(), **record}
+    def _log(self, context: str, payload: dict) -> None:
         path = self._logs_dir / f"{context}.jsonl"
-        with path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+        with path.open("a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "ts": time.time(),
+                        **payload,
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+        log = AgentLog.model_validate(payload)
+
+        if self._event_loop is None:
+            print(
+                "[agent-gateway] log forwarding skipped: "
+                "event loop is not bound"
+            )
+            return
+
+        async def forward() -> None:
+            try:
+                await self._control_client.publish_log(
+                    log,
+                    context=context,
+                )
+                print(
+                    f"[agent-gateway] forwarded log "
+                    f"event={log.event!r} context={context!r}"
+                )
+            except Exception as exc:
+                print(
+                    f"[agent-gateway] FAILED to forward log "
+                    f"event={log.event!r} context={context!r}: {exc!r}"
+                )
+
+        future = asyncio.run_coroutine_threadsafe(
+            forward(),
+            self._event_loop,
+        )
+
+        def _forward_done(future) -> None:
+            try:
+                future.result()
+            except Exception as exc:
+                print(
+                    f"[agent-gateway] log forwarding task failed: "
+                    f"{exc!r}"
+                )
+
+        future.add_done_callback(_forward_done)
     # --- vls ---
 
     def _get_next_vls(self) -> VLS | None:
