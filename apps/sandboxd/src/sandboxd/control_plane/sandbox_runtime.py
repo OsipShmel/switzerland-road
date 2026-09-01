@@ -59,6 +59,10 @@ class SandboxRuntime:
     def mark_target_ready(self) -> None:
         self._target_ready = True
 
+    def reset_readiness(self) -> None:
+        self._target_ready = False
+        self._vls_ready = False
+
     async def stop(self) -> None:
         if self.started:
             await asyncio.to_thread(self._orchestrator.stop)

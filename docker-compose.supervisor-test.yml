@@ -6,6 +6,9 @@ services:
 
     environment:
       SANDBOXD_URL: http://sandboxd:8001
+      SECURITY_GATE_ALLOWED_REPOSITORY_HOSTS: ${SECURITY_GATE_ALLOWED_REPOSITORY_HOSTS:-github.com,gitlab.com,bitbucket.org}
+      SECURITY_GATE_SEMGREP_CONFIG: ${SECURITY_GATE_SEMGREP_CONFIG:-p/sql-injection}
+      SUPERVISOR_LOGS_DIR: /var/logs
 
     ports:
       - "8000:8000"

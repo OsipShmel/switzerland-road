@@ -14,6 +14,7 @@ def create_agent_gateway_app(gateway_state: GatewayState) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         gateway_state.bind_event_loop(asyncio.get_running_loop())
+        await gateway_state.load_current_registry()
         yield
 
     app = FastAPI(

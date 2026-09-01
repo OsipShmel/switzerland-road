@@ -31,14 +31,16 @@ def get_check_session(request: Request) -> StartCheckSessionResponse:
 
 
 @router.post("/check-sessions/current/result", response_model=SubmitCheckResultResponse)
-def submit_check_result(body: SubmitCheckResultRequest, request: Request) -> SubmitCheckResultResponse:
+async def submit_check_result(body: SubmitCheckResultRequest, request: Request) -> SubmitCheckResultResponse:
     verdict = VLSVerdict(body.verdict.value)
-    updated = _gw(request).apply_check_result(
+    gateway = _gw(request)
+    updated = gateway.apply_check_result(
         verdict=verdict,
         proof_is_flag=(body.proof.type == ProofType.FLAG),
         action_taken=body.report.action_taken,
         result_details=body.report.result_details,
     )
+    await gateway.sync_vulnerability(updated)
     return SubmitCheckResultResponse(
         accepted=True, vulnerability_id=updated.id, status=updated.status.value, verdict=Verdict(verdict.value),
     )

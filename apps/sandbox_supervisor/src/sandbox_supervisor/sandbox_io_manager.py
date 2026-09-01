@@ -50,7 +50,12 @@ class SandboxIOManager:
 async def receive_vls_from_sandbox(request: Request) -> dict[str, bool]:
     payload = await request.json()
     try:
-        updated = await vls_manager_instance.upsert(VLS.model_validate(payload))
+        vls = VLS.model_validate(payload)
+        updated = await vls_manager_instance.upsert(vls)
+        # обновление относится к единственной активной проверке mvp
+        from .security_gate import security_gate_service
+
+        await security_gate_service.handle_sandbox_vls(vls)
     except Exception as exc:
         return {"accepted": False, "error": str(exc)}
     return {"accepted": updated}
@@ -60,4 +65,8 @@ async def receive_vls_from_sandbox(request: Request) -> dict[str, bool]:
 async def receive_log_from_sandbox(request: Request) -> dict[str, bool]:
     payload = await request.json()
     await vls_manager_instance.append_log(payload)
+    # supervisor переводит служебный лог в событие для фронта
+    from .security_gate import security_gate_service
+
+    await security_gate_service.handle_sandbox_log(payload)
     return {"accepted": True}

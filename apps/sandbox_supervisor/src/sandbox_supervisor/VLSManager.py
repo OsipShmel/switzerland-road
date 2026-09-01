@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -15,7 +16,7 @@ class VLSManager:
     def __init__(self) -> None:
         self._current_vlsreg = VlsRegistry()
         self._session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = Path("/var/logs")
+        self.log_dir = Path(os.getenv("SUPERVISOR_LOGS_DIR", "/var/logs"))
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self._log_file = self.log_dir / f"session_{self._session_timestamp}_log.txt"
 

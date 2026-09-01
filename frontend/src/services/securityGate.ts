@@ -1,100 +1,85 @@
 import type { ScanConfiguration, ScanEvent } from "../types";
 
 export interface SecurityGateClient {
-  startScan(configuration: ScanConfiguration): Promise<{ scanId: string }>;
+  startScan(configuration: ScanConfiguration): Promise<ScanReceipt>;
   subscribe(
     scanId: string,
     onEvent: (event: ScanEvent) => void,
   ): () => void;
 }
 
-// контракт готов, реальное api будет подключено позже
+export interface ScanReceipt {
+  scanId: string;
+  status:
+    | "accepted"
+    | "running"
+    | "sandbox_starting"
+    | "agent_running"
+    | "completed"
+    | "failed";
+  repositoryUrl: string;
+  correlationEnabled: boolean;
+  findingCount?: number;
+  error?: string;
+}
+
+const SECURITY_GATE_URL = (
+  import.meta.env.VITE_SECURITY_GATE_URL ?? "http://127.0.0.1:8000"
+).replace(/\/$/, "");
+
 export const securityGateClient: SecurityGateClient = {
-  async startScan() {
-    throw new Error("Security Gate API пока не подключен");
+  async startScan(configuration) {
+    const response = await fetch(`${SECURITY_GATE_URL}/api/security-gate/scans`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        repositoryUrl: configuration.repositoryUrl,
+        correlationEnabled: configuration.correlationMode === "correlated",
+      }),
+    });
+
+    if (!response.ok) {
+      let details = `HTTP ${response.status}`;
+      try {
+        const body = (await response.json()) as { detail?: string };
+        details = body.detail ?? details;
+      } catch {
+        // сервер может вернуть ответ без json
+      }
+      throw new Error(`Security Gate отклонил заявку: ${details}`);
+    }
+
+    return (await response.json()) as ScanReceipt;
   },
-  subscribe() {
-    return () => undefined;
+  subscribe(scanId, onEvent) {
+    const eventSource = new EventSource(
+      `${SECURITY_GATE_URL}/api/security-gate/scans/${encodeURIComponent(scanId)}/events`,
+    );
+    let connectionWarningShown = false;
+    eventSource.onopen = () => {
+      connectionWarningShown = false;
+    };
+    eventSource.onmessage = (message) => {
+      try {
+        onEvent(JSON.parse(message.data) as ScanEvent);
+      } catch {
+        onEvent({
+          type: "error",
+          message: "Security Gate вернул некорректное событие.",
+        });
+      }
+    };
+    eventSource.onerror = () => {
+      if (connectionWarningShown) return;
+      connectionWarningShown = true;
+      onEvent({
+        type: "progress",
+        stage: "Связь с Security Gate",
+        details: "Поток событий прерван, выполняется переподключение",
+        progress: 0,
+      });
+    };
+
+    return () => eventSource.close();
   },
 };
-
-export function streamDemoEvents(
-  configuration: ScanConfiguration,
-  onEvent: (event: ScanEvent) => void,
-): () => void {
-  const dastDetails =
-    configuration.correlationMode === "correlated"
-      ? "ZAP проверяет найденные endpoint, затем сверяется runtime-трасса"
-      : "ZAP запускается отдельно, исходный отчет будет сохранен в logs/dast-report.json";
-
-  const events: ScanEvent[] = [
-    {
-      type: "progress",
-      stage: "Подготовка",
-      details: "Репозиторий принят, параметры запуска проверены",
-      progress: 8,
-    },
-    {
-      type: "progress",
-      stage: "SAST",
-      details: "Semgrep анализирует исходный код",
-      progress: 28,
-    },
-    {
-      type: "progress",
-      stage: "Endpoint locator",
-      details: "Найденные строки сопоставляются с HTTP-маршрутами",
-      progress: 46,
-    },
-    {
-      type: "progress",
-      stage: "Scoring",
-      details: "Находки сортируются с учетом кода и топологии",
-      progress: 62,
-    },
-    {
-      type: "finding",
-      finding: {
-        id: "VLS-1024",
-        title: "Возможная SQL-инъекция",
-        severity: "high",
-        source: "SAST",
-        location: "routes/search.ts:23",
-        status: "unconfirmed",
-      },
-    },
-    {
-      type: "progress",
-      stage: "DAST",
-      details: dastDetails,
-      progress: 78,
-    },
-    {
-      type: "finding",
-      finding: {
-        id: "VLS-1041",
-        title: "Небезопасные атрибуты cookie",
-        severity: "medium",
-        source: "DAST",
-        location: "/rest/user/login",
-        status: "unconfirmed",
-      },
-    },
-    {
-      type: "progress",
-      stage: "Сборка отчета",
-      details: "VLS Registry готовится к передаче следующему компоненту",
-      progress: 94,
-    },
-    {
-      type: "complete",
-      summary: "Демонстрационный анализ завершен",
-    },
-  ];
-
-  const timers = events.map((event, index) =>
-    window.setTimeout(() => onEvent(event), 450 * (index + 1)),
-  );
-
-  return () => timers.forEach((timer) => window.clearTimeout(timer));
-}

@@ -38,6 +38,8 @@ class SandboxControlService:
             raise HTTPException(status_code=400, detail="target archive is empty")
         if self.runtime.started:
             await self.runtime.stop()
+        # новая заявка не должна стартовать со старым registry
+        self.runtime.reset_readiness()
         try:
             await asyncio.to_thread(self._replace_target, archive)
         except (ValueError, zipfile.BadZipFile) as exc:

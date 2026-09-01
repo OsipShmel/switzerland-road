@@ -11,6 +11,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.13",
     "uvicorn>=0.52.4",
+    "orchestrator",
     "vls",
     "sandboxdapi",
 ]
@@ -21,6 +22,7 @@ sandbox-supervisor = "sandbox_supervisor.main:main"
 [tool.uv.sources]
 vls = { workspace = true }
 sandboxdapi = { workspace = true }
+orchestrator = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]

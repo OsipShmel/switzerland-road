@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import { streamDemoEvents } from "./services/securityGate";
+import { securityGateClient } from "./services/securityGate";
 import type {
   CorrelationMode,
   ScanConfiguration,
@@ -19,16 +19,21 @@ type Phase =
   | "idle"
   | "repository"
   | "mode"
-  | "configured"
+  | "submitting"
   | "running"
-  | "complete";
+  | "complete"
+  | "failed";
 
 type MessageRole = "assistant" | "user" | "system";
 
 type MessagePayload =
   | { kind: "text"; text: string }
   | { kind: "mode"; repositoryUrl: string }
-  | { kind: "configuration"; configuration: ScanConfiguration }
+  | {
+      kind: "configuration";
+      configuration: ScanConfiguration;
+      scanId: string;
+    }
   | { kind: "progress"; stage: string; details: string; progress: number }
   | { kind: "findings"; findings: VulnerabilitySummary[] };
 
@@ -96,12 +101,12 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [repositoryUrl, setRepositoryUrl] = useState("");
-  const [configuration, setConfiguration] =
-    useState<ScanConfiguration | null>(null);
   const [findings, setFindings] = useState<VulnerabilitySummary[]>([]);
 
   const nextMessageId = useRef(2);
+  const submissionVersion = useRef(0);
   const streamCleanup = useRef<(() => void) | null>(null);
+  const findingsRef = useRef<VulnerabilitySummary[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -128,6 +133,7 @@ function App() {
   }, []);
 
   const resetChat = useCallback(() => {
+    submissionVersion.current += 1;
     streamCleanup.current?.();
     streamCleanup.current = null;
     nextMessageId.current = 2;
@@ -140,21 +146,19 @@ function App() {
     ]);
     setInput("");
     setRepositoryUrl("");
-    setConfiguration(null);
     setFindings([]);
+    findingsRef.current = [];
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
   const chooseMode = useCallback(
-    (mode: CorrelationMode, showSelection = true) => {
+    async (mode: CorrelationMode, showSelection = true) => {
       if (phase !== "mode") return;
 
       const nextConfiguration: ScanConfiguration = {
         repositoryUrl,
         correlationMode: mode,
       };
-      setConfiguration(nextConfiguration);
-      setPhase("configured");
       if (showSelection) {
         appendMessage({
           role: "user",
@@ -162,64 +166,93 @@ function App() {
           text: MODE_LABELS[mode],
         });
       }
-      appendMessage({
-        role: "assistant",
-        kind: "configuration",
-        configuration: nextConfiguration,
-      });
-    },
-    [appendMessage, phase, repositoryUrl],
-  );
+      setPhase("submitting");
+      const currentSubmission = ++submissionVersion.current;
 
-  const startDemo = useCallback(() => {
-    if (!configuration || phase === "running") return;
+      try {
+        const receipt = await securityGateClient.startScan(nextConfiguration);
+        if (currentSubmission !== submissionVersion.current) return;
 
-    streamCleanup.current?.();
-    setFindings([]);
-    setPhase("running");
-    appendMessage({
-      role: "system",
-      kind: "text",
-      text: "Запущена демонстрация потока логов. Реальный Security Gate не вызывается.",
-    });
-
-    const collectedFindings: VulnerabilitySummary[] = [];
-    streamCleanup.current = streamDemoEvents(configuration, (event) => {
-      if (event.type === "progress") {
+        findingsRef.current = [];
+        setFindings([]);
+        setPhase("running");
         appendMessage({
           role: "assistant",
-          kind: "progress",
-          stage: event.stage,
-          details: event.details,
-          progress: event.progress,
+          kind: "configuration",
+          configuration: nextConfiguration,
+          scanId: receipt.scanId,
         });
-        return;
-      }
+        streamCleanup.current = securityGateClient.subscribe(
+          receipt.scanId,
+          (event) => {
+            if (event.type === "progress") {
+              appendMessage({
+                role: "assistant",
+                kind: "progress",
+                stage: event.stage,
+                details: event.details,
+                progress: event.progress,
+              });
+              return;
+            }
 
-      if (event.type === "finding") {
-        collectedFindings.push(event.finding);
-        setFindings([...collectedFindings]);
-        return;
-      }
+            if (event.type === "finding") {
+              const current = findingsRef.current;
+              const existingIndex = current.findIndex(
+                (finding) => finding.id === event.finding.id,
+              );
+              const updated = [...current];
+              if (existingIndex >= 0) {
+                updated[existingIndex] = event.finding;
+              } else {
+                updated.push(event.finding);
+              }
+              findingsRef.current = updated;
+              setFindings(updated);
+              return;
+            }
 
-      if (event.type === "error") {
-        setPhase("configured");
+            streamCleanup.current?.();
+            streamCleanup.current = null;
+            if (event.type === "error") {
+              setPhase("failed");
+              appendMessage({
+                role: "assistant",
+                kind: "text",
+                text: `Ошибка выполнения: ${event.message}`,
+              });
+              return;
+            }
+
+            setPhase("complete");
+            appendMessage({
+              role: "assistant",
+              kind: "text",
+              text: event.summary,
+            });
+            appendMessage({
+              role: "assistant",
+              kind: "findings",
+              findings: findingsRef.current,
+            });
+          },
+        );
+      } catch (error) {
+        if (currentSubmission !== submissionVersion.current) return;
+
+        setPhase("mode");
         appendMessage({
           role: "assistant",
           kind: "text",
-          text: `Ошибка выполнения: ${event.message}`,
+          text:
+            error instanceof Error
+              ? error.message
+              : "Не удалось отправить заявку в Security Gate.",
         });
-        return;
       }
-
-      setPhase("complete");
-      appendMessage({
-        role: "assistant",
-        kind: "findings",
-        findings: [...collectedFindings],
-      });
-    });
-  }, [appendMessage, configuration, phase]);
+    },
+    [appendMessage, phase, repositoryUrl],
+  );
 
   const processInput = useCallback(
     (rawValue: string) => {
@@ -238,15 +271,15 @@ function App() {
         appendMessage({
           role: "assistant",
           kind: "text",
-          text: "Доступные команды: /start — новая настройка, /demo — показать поток логов, /reset — очистить чат.",
+          text: "Доступные команды: /start — новая проверка, /reset — очистить чат.",
         });
         return;
       }
 
       if (value === "/start") {
         streamCleanup.current?.();
-        setConfiguration(null);
         setFindings([]);
+        findingsRef.current = [];
         setRepositoryUrl("");
         setPhase("repository");
         appendMessage({
@@ -254,19 +287,6 @@ function App() {
           kind: "text",
           text: "Пришлите HTTPS-ссылку на репозиторий, который нужно проверить.",
         });
-        return;
-      }
-
-      if (value === "/demo") {
-        if (configuration && (phase === "configured" || phase === "complete")) {
-          startDemo();
-        } else {
-          appendMessage({
-            role: "assistant",
-            kind: "text",
-            text: "Сначала завершите настройку через /start.",
-          });
-        }
         return;
       }
 
@@ -310,7 +330,7 @@ function App() {
         appendMessage({
           role: "assistant",
           kind: "text",
-          text: "Демонстрация выполняется. Для остановки и очистки используйте /reset.",
+          text: "Проверка выполняется. Новые этапы и результаты появятся здесь автоматически.",
         });
         return;
       }
@@ -321,14 +341,7 @@ function App() {
         text: "Не понял сообщение. Введите /start для новой проверки или /help для списка команд.",
       });
     },
-    [
-      appendMessage,
-      chooseMode,
-      configuration,
-      phase,
-      resetChat,
-      startDemo,
-    ],
+    [appendMessage, chooseMode, phase, resetChat],
   );
 
   const handleSubmit = (event: FormEvent) => {
@@ -345,10 +358,14 @@ function App() {
 
   const statusLabel =
     phase === "running"
-      ? "демо выполняется"
-      : phase === "complete"
-        ? "демо завершено"
-        : "готов к работе";
+      ? "проверка выполняется"
+      : phase === "submitting"
+        ? "отправка заявки"
+        : phase === "complete"
+          ? "проверка завершена"
+          : phase === "failed"
+            ? "ошибка проверки"
+            : "готов к работе";
 
   return (
     <main className="app-shell">
@@ -379,12 +396,18 @@ function App() {
               message={message}
               phase={phase}
               onModeSelect={chooseMode}
-              onDemoStart={startDemo}
             />
           ))}
 
           {phase === "running" && (
             <div className="typing-indicator" aria-label="Анализ выполняется">
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
+          {phase === "submitting" && (
+            <div className="typing-indicator" aria-label="Заявка отправляется">
               <span />
               <span />
               <span />
@@ -401,15 +424,6 @@ function App() {
               onClick={() => processInput("/start")}
             >
               /start
-            </button>
-          )}
-          {(phase === "configured" || phase === "complete") && (
-            <button
-              type="button"
-              className="command-chip"
-              onClick={startDemo}
-            >
-              /demo логов
             </button>
           )}
           <form className="composer" onSubmit={handleSubmit}>
@@ -451,14 +465,12 @@ interface MessageBubbleProps {
   message: ChatMessage;
   phase: Phase;
   onModeSelect: (mode: CorrelationMode) => void;
-  onDemoStart: () => void;
 }
 
 function MessageBubble({
   message,
   phase,
   onModeSelect,
-  onDemoStart,
 }: MessageBubbleProps) {
   return (
     <article className={`message message--${message.role}`}>
@@ -484,8 +496,7 @@ function MessageBubble({
           {message.kind === "configuration" && (
             <ConfigurationCard
               configuration={message.configuration}
-              canRunDemo={phase === "configured" || phase === "complete"}
-              onDemoStart={onDemoStart}
+              scanId={message.scanId}
             />
           )}
           {message.kind === "progress" && (
@@ -552,12 +563,10 @@ function ModeSelection({
 
 function ConfigurationCard({
   configuration,
-  canRunDemo,
-  onDemoStart,
+  scanId,
 }: {
   configuration: ScanConfiguration;
-  canRunDemo: boolean;
-  onDemoStart: () => void;
+  scanId: string;
 }) {
   return (
     <div className="configuration-card">
@@ -565,7 +574,7 @@ function ConfigurationCard({
         <span className="success-icon"><CheckIcon /></span>
         <div>
           <strong>Конфигурация готова</strong>
-          <p>Данные сохранены только в интерфейсе</p>
+          <p>Заявка принята Security Gate</p>
         </div>
       </div>
       <dl className="configuration-grid">
@@ -577,19 +586,18 @@ function ConfigurationCard({
           <dt>Режим</dt>
           <dd>{MODE_LABELS[configuration.correlationMode]}</dd>
         </div>
+        <div>
+          <dt>Scan ID</dt>
+          <dd>{scanId}</dd>
+        </div>
       </dl>
       <div className="notice">
         <InfoIcon />
         <span>
-          Security Gate пока не подключен — запрос никуда не отправляется.
+          Supervisor скачивает репозиторий, запускает pipeline и передает результат
+          в песочницу. Состояние приходит в этот чат автоматически.
         </span>
       </div>
-      {canRunDemo && (
-        <button className="demo-button" type="button" onClick={onDemoStart}>
-          Показать demo выполнения
-          <ArrowIcon />
-        </button>
-      )}
     </div>
   );
 }
@@ -629,7 +637,7 @@ function FindingsList({ findings }: { findings: VulnerabilitySummary[] }) {
       <div className="findings-heading">
         <div>
           <strong>Проверка завершена</strong>
-          <p>Демонстрационный результат · {findings.length} находки</p>
+          <p>VLS Registry · найдено записей: {findings.length}</p>
         </div>
         <span className="finding-count">{findings.length}</span>
       </div>
@@ -651,9 +659,6 @@ function FindingsList({ findings }: { findings: VulnerabilitySummary[] }) {
           ))
         )}
       </div>
-      <p className="demo-disclaimer">
-        Эти данные нужны только для демонстрации будущего чтения логов.
-      </p>
     </div>
   );
 }
@@ -689,14 +694,6 @@ function InfoIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5M12 8h.01" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 12h14M14 7l5 5-5 5" />
     </svg>
   );
 }

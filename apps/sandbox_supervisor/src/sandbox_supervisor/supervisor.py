@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import httpx
@@ -29,9 +30,17 @@ def _sandbox_url() -> str:
 class Supervisor:
     MAX_RETRIES = 5
 
-    def __init__(self, client: httpx.AsyncClient, sandbox_url: str | None = None) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        sandbox_url: str | None = None,
+        io_manager: SandboxIOManager | None = None,
+    ) -> None:
         self._client = client
-        self._iomanager = SandboxIOManager(sandbox_url or _sandbox_url(), client)
+        self._iomanager = io_manager or SandboxIOManager(
+            sandbox_url or _sandbox_url(),
+            client,
+        )
 
     async def start(self, target_link: str | None, vlsreg: VlsRegistry | None = None) -> None:
         await self._setup_target(target_link)
@@ -39,6 +48,22 @@ class Supervisor:
         if vlsreg is None:
             return
 
+        await self._send_registry(vlsreg)
+
+    async def start_from_directory(
+        self,
+        target_dir: str | Path,
+        vlsreg: VlsRegistry,
+    ) -> None:
+        # sandboxd сам запускает окружение после получения target и registry
+        target_zip_bytes = await asyncio.to_thread(
+            self._pack_directory,
+            Path(target_dir),
+        )
+        await self._send_target(target_zip_bytes)
+        await self._send_registry(vlsreg)
+
+    async def _send_registry(self, vlsreg: VlsRegistry) -> None:
         retries = 0
         while not await self._iomanager.send_vls_registry(vlsreg):
             retries += 1
@@ -52,13 +77,17 @@ class Supervisor:
         return response.content
 
     async def _setup_target(self, target_link: str | None = None) -> None:
-        output_zip_path = "/tmp/target_packed.zip"
-
         if target_link:
             target_zip_bytes = await self._get_target_zip(target_link)
         else:
-            target_zip_bytes = await asyncio.to_thread(self._pack_local_target, output_zip_path)
+            target_zip_bytes = await asyncio.to_thread(
+                self._pack_directory,
+                Path("/tmp/target_app"),
+            )
 
+        await self._send_target(target_zip_bytes)
+
+    async def _send_target(self, target_zip_bytes: bytes) -> None:
         retries = 0
         while not await self._iomanager.send_zip(target_zip_bytes):
             retries += 1
@@ -67,20 +96,20 @@ class Supervisor:
             await asyncio.sleep(5)
 
     @staticmethod
-    def _pack_local_target(output_zip_path: str) -> bytes:
-        source_root = "/tmp/target_app"
-        entries = os.listdir(source_root)
-        if len(entries) == 1 and os.path.isdir(os.path.join(source_root, entries[0])):
-            source_root = os.path.join(source_root, entries[0])
+    def _pack_directory(source_root: Path) -> bytes:
+        source_root = source_root.expanduser().resolve()
+        if not source_root.is_dir():
+            raise RuntimeError(f"target directory does not exist: {source_root}")
 
-        with ZipFile(output_zip_path, "w", ZIP_DEFLATED) as fzip:
-            for root, _dirs, files in os.walk(source_root):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    archname = os.path.relpath(file_path, source_root)
-                    fzip.write(file_path, archname)
-        with open(output_zip_path, "rb") as f:
-            return f.read()
+        output = io.BytesIO()
+        with ZipFile(output, "w", ZIP_DEFLATED) as fzip:
+            for file_path in source_root.rglob("*"):
+                relative = file_path.relative_to(source_root)
+                if ".git" in relative.parts or file_path.is_symlink():
+                    continue
+                if file_path.is_file():
+                    fzip.write(file_path, relative.as_posix())
+        return output.getvalue()
 
 
 @router.post("/start")

@@ -9,7 +9,16 @@ from typing import Callable
 from uuid import uuid4
 
 from sandboxdapi import AgentLog
-from vls import VLS, VLSStatus, VLSVerdict, ConfirmedBy, VlsRegistry
+from vls import (
+    ConfirmedBy,
+    PentestReport,
+    PentestVerificationStep,
+    VerdictOutput,
+    VLS,
+    VLSStatus,
+    VLSVerdict,
+    VlsRegistry,
+)
 from sandboxdapi.errors import (
     SessionAlreadyActive, NoActiveSession, ResultNotSubmitted,
     FlagNotConfirmed, NoUncheckedVulnerabilities,
@@ -31,7 +40,12 @@ class GatewayState:
     В рамках PoC у нас один пентест на демона
     """
 
-    def __init__(self, logs_dir: Path, on_flag_confirmed: Callable[[], None] | None = None) -> None:
+    def __init__(
+        self,
+        logs_dir: Path,
+        on_flag_confirmed: Callable[[], None] | None = None,
+        control_client: SandboxdControlClient | None = None,
+    ) -> None:
         self._vulnerabilities: VlsRegistry = VlsRegistry()
         self.active_check: ActiveCheckSession | None = None
         self._is_target_discredited: bool = False
@@ -39,13 +53,20 @@ class GatewayState:
         self._logs_dir = logs_dir
         self._logs_dir.mkdir(parents=True, exist_ok=True)
 
-        self._control_client = SandboxdControlClient(socket_path="/run/sandboxd/control.sock")
+        self._control_client = control_client or SandboxdControlClient(
+            socket_path="/run/sandboxd/control.sock"
+        )
 
         self._event_loop: asyncio.AbstractEventLoop | None = None
 
 
     def load_vulnerabilities(self, vls_registry: VlsRegistry) -> None:
         self._vulnerabilities = vls_registry
+
+    async def load_current_registry(self) -> None:
+        # gateway берет registry, который супервайзер передал в sandboxd
+        records = await self._control_client.get_vls_registry()
+        self.load_vulnerabilities(VlsRegistry.from_records(records))
 
     # --- check-session lifecycle ---
 
@@ -79,10 +100,24 @@ class GatewayState:
             raise FlagNotConfirmed()
 
         confirmed_by = ConfirmedBy.PENTEST_AGENT if verdict == VLSVerdict.CONFIRMED else None
+        pentest_step = PentestVerificationStep(
+            run_executed=True,
+            verdict_output=VerdictOutput(verdict.value),
+            human_report=PentestReport(
+                executor_name="pentest-agent",
+                action_taken=action_taken,
+                result_details=result_details,
+                session_id=session.session_id,
+            ),
+        )
+        verification_history = session.vulnerability.verification_history.model_copy(
+            update={"pentest": pentest_step}
+        )
         updated = session.vulnerability.model_copy(update={
             "status": VLSStatus.CHECKED,
             "verdict": verdict,
             "confirmed_by": confirmed_by,
+            "verification_history": verification_history,
         })
         self._vulnerabilities.upsert(updated)
         session.vulnerability = updated
@@ -94,6 +129,10 @@ class GatewayState:
             "metadata": {"verdict": verdict.value, "result_details": result_details},
         })
         return updated
+
+    async def sync_vulnerability(self, vulnerability: VLS) -> None:
+        # sandboxd сохранит vls и вернет обновление супервайзеру
+        await self._control_client.sync_vls(vulnerability)
 
     def finish_check_session(self) -> ActiveCheckSession:
         session = self.active_check

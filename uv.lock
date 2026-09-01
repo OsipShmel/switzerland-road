@@ -920,7 +920,9 @@ dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "orchestrator" },
     { name = "pydantic" },
+    { name = "sandboxdapi" },
     { name = "uvicorn" },
     { name = "vls" },
 ]
@@ -932,10 +934,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiofiles", specifier = ">=25.1.0" },
+    { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "orchestrator", editable = "apps/orchestrator" },
     { name = "pydantic", specifier = ">=2.13" },
+    { name = "sandboxdapi", editable = "packages/sandboxdAPI" },
     { name = "uvicorn", specifier = ">=0.52.4" },
     { name = "vls", editable = "packages/vls" },
 ]
@@ -953,6 +957,7 @@ dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pytest" },
+    { name = "sandboxdapi" },
     { name = "setuptools" },
     { name = "sqids" },
     { name = "uvicorn" },
@@ -970,6 +975,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pydantic", specifier = ">=2.13" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "sandboxdapi", editable = "packages/sandboxdAPI" },
     { name = "setuptools", specifier = ">=84.0.0" },
     { name = "sqids", specifier = ">=0.5.2" },
     { name = "uvicorn", specifier = ">=0.52.4" },

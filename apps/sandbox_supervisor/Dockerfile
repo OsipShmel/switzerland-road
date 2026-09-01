@@ -2,24 +2,34 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
 
 COPY pyproject.toml README.md ./
 COPY apps/sandbox_supervisor/src ./src
 
-# На этом этапе vls лучше установить из локального packages/vls,
-# а не надеяться на внешний PyPI-пакет.
 COPY packages/vls ./packages/vls
 COPY packages/sandboxdAPI ./packages/sandboxdAPI
+COPY apps/data_enricher ./apps/data_enricher
+COPY apps/scoring_agent ./apps/scoring_agent
+COPY apps/orchestrator ./apps/orchestrator
 
 RUN uv pip install --system \
     fastapi \
     httpx \
     aiofiles \
     pydantic \
-    uvicorn
+    uvicorn \
+    semgrep
 
-RUN uv pip install --system ./packages/vls ./packages/sandboxdAPI
+RUN uv pip install --system \
+    ./packages/vls \
+    ./packages/sandboxdAPI \
+    ./apps/data_enricher \
+    ./apps/scoring_agent \
+    ./apps/orchestrator
 
 
 ENV PYTHONPATH=/app/src
